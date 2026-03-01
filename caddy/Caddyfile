@@ -1,4 +1,4 @@
-:80 {
+http://rss.grattafiori.dev {
     reverse_proxy miniflux:8080
 
     header {
@@ -7,8 +7,6 @@
         Referrer-Policy "strict-origin-when-cross-origin"
         Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
         Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
-        # Strict-Transport-Security header should be added when TLS is enabled:
-        # Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
     }
 
     log {
@@ -18,5 +16,4 @@
         }
         format json
     }
-
 }
