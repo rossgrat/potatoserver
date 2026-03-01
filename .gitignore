@@ -1,0 +1,20 @@
+# Environment files with secrets
+.env
+*.env
+.env.*
+
+# Docker volumes and data
+caddy/logs/
+*/logs/
+
+# Claude Code
+.claude/
+
+# Temporary files
+*.tmp
+*.swp
+*~
+
+# Backup files that might contain secrets
+*.bak
+*.backup
