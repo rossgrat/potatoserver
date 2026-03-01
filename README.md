@@ -26,7 +26,7 @@ No open inbound ports. No exposed home IP.
 1. Copy and configure environment variables:
    ```bash
    cp .env.example miniflux/.env
-   nano miniflux/.env
+   nvim miniflux/.env
    ```
 
 2. Start services:
