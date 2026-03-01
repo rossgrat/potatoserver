@@ -17,3 +17,8 @@ http://rss.grattafiori.dev {
         format json
     }
 }
+
+http://media.grattafiori.dev {
+    root * /srv/media
+    file_server
+}

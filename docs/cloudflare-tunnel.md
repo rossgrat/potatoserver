@@ -20,7 +20,7 @@ Internet → Cloudflare Edge (DDoS/WAF/TLS) → Tunnel (QUIC) → cloudflared �
 |---|---|---|
 | `ross` | GitHub Pages portfolio | Proxied |
 | `rss` | Miniflux (via tunnel) | Proxied |
-| `media` | CloudFront CDN | DNS-only |
+| `media` | Static media files (via tunnel) | Proxied |
 | `@` (MX/TXT) | ProtonMail email | DNS-only |
 
 ## Setup
@@ -51,6 +51,8 @@ credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
 ingress:
   - hostname: rss.grattafiori.dev
     service: http://localhost:80
+  - hostname: media.grattafiori.dev
+    service: http://localhost:80
   - service: http_status:404
 ```
 
@@ -58,6 +60,7 @@ ingress:
 
 ```bash
 cloudflared tunnel route dns potatoserver rss.grattafiori.dev
+cloudflared tunnel route dns potatoserver media.grattafiori.dev
 ```
 
 ### Run as service

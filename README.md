@@ -7,6 +7,7 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 | Service | URL | Description |
 |---|---|---|
 | Miniflux | `rss.grattafiori.dev` | RSS reader |
+| Media | `media.grattafiori.dev` | Static media file server |
 | Caddy | — | Reverse proxy (hostname-based routing) |
 | PostgreSQL | — | Database backend for Miniflux |
 
