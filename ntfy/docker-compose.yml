@@ -1,6 +1,6 @@
 services:
   ntfy:
-    image: binver/ntfy
+    image: binwiederhier/ntfy
     container_name: ntfy
     command: serve
     restart: unless-stopped
