@@ -1,101 +1,61 @@
-# Network Services
+# potatoserver
 
-Home server infrastructure with Caddy reverse proxy and Miniflux RSS reader.
+Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/cloudflare-tunnel.md).
 
 ## Services
 
-- **Caddy**: Reverse proxy with automatic HTTPS
-- **Miniflux**: Lightweight RSS reader
-- **PostgreSQL**: Database backend for Miniflux
-
-## Prerequisites
-
-- Docker and Docker Compose
-- Make (optional, for convenience commands)
-
-## Setup
-
-1. Copy the example environment file:
-   ```bash
-   cp .env.example .env
-   ```
-
-2. Edit `.env` with your actual credentials:
-   ```bash
-   nano .env
-   ```
-
-   Required variables:
-   - `POSTGRES_USER`: Database username (default: miniflux)
-   - `POSTGRES_PASSWORD`: **Change this to a secure password**
-   - `POSTGRES_DB`: Database name (default: miniflux)
-   - `ADMIN_USERNAME`: Miniflux admin username
-   - `ADMIN_PASSWORD`: **Change this to a secure admin password**
-
-3. Start all services:
-   ```bash
-   make up
-   ```
-
-   Or manually:
-   ```bash
-   docker network create --driver bridge caddy-network
-   cd caddy && docker-compose up -d
-   cd ../miniflux && docker-compose up -d
-   ```
-
-## Usage
-
-### Start services
-```bash
-make up
-```
-
-### Stop services
-```bash
-make down
-```
-
-### Restart services
-```bash
-make restart
-```
-
-### View logs
-```bash
-make logs
-```
-
-## Security Notes
-
-- **Never commit `.env` files** - they contain sensitive credentials
-- Logs are excluded from version control (`.gitignore`)
-- Miniflux is configured with internal network isolation
-- Review `cloudflare-architecture-analysis.md` for deployment security considerations
+| Service | URL | Description |
+|---|---|---|
+| Miniflux | `rss.grattafiori.dev` | RSS reader |
+| Caddy | — | Reverse proxy (hostname-based routing) |
+| PostgreSQL | — | Database backend for Miniflux |
 
 ## Architecture
 
 ```
-Internet
-   │
-   ├─ Caddy (Port 80/443)
-   │     └─ Reverse proxy to Miniflux
-   │
-   └─ Miniflux (Internal port 8080)
-         └─ PostgreSQL (Internal network only)
+Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC) → cloudflared → Caddy:80 → services
+```
+
+No open inbound ports. No exposed home IP.
+
+## Setup
+
+1. Copy and configure environment variables:
+   ```bash
+   cp .env.example miniflux/.env
+   nano miniflux/.env
+   ```
+
+2. Start services:
+   ```bash
+   make up
+   ```
+
+3. Set up Cloudflare Tunnel — see [docs/cloudflare-tunnel.md](docs/cloudflare-tunnel.md)
+
+## Usage
+
+```bash
+make up        # Start all services
+make down      # Stop all services
+make restart   # Restart all services
+make logs      # View logs
 ```
 
 ## Configuration Files
 
-- `caddy/Caddyfile`: Caddy reverse proxy configuration
-- `caddy/docker-compose.yml`: Caddy container configuration
-- `miniflux/docker-compose.yml`: Miniflux and PostgreSQL containers
-- `Makefile`: Convenience commands
+- `caddy/Caddyfile` — Reverse proxy config (use `http://` prefix, Cloudflare handles TLS)
+- `caddy/docker-compose.yml` — Caddy container
+- `miniflux/docker-compose.yml` — Miniflux + PostgreSQL containers
+- `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
-## Additional Documentation
+## Docs
 
-See `cloudflare-architecture-analysis.md` for detailed security considerations and deployment architectures for exposing services to the internet.
+- [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
 
-## License
+## Security
 
-Personal infrastructure configuration.
+- Never commit `.env` files — they contain credentials
+- Logs are excluded via `.gitignore`
+- Miniflux database is on an internal-only Docker network
+- All public traffic goes through Cloudflare (DDoS protection, WAF, bot filtering)
