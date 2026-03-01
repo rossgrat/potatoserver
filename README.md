@@ -8,6 +8,7 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 |---|---|---|
 | Miniflux | `rss.grattafiori.dev` | RSS reader |
 | Media | `media.grattafiori.dev` | Static media file server |
+| ntfy | `alerts.grattafiori.dev` | Push notification server |
 | Caddy | — | Reverse proxy (hostname-based routing) |
 | PostgreSQL | — | Database backend for Miniflux |
 
@@ -41,6 +42,7 @@ make up        # Start all services
 make down      # Stop all services
 make restart   # Restart all services
 make logs      # View logs
+make deploy    # Deploy to server (git pull + restart)
 ```
 
 ## Configuration Files
@@ -48,11 +50,14 @@ make logs      # View logs
 - `caddy/Caddyfile` — Reverse proxy config (use `http://` prefix, Cloudflare handles TLS)
 - `caddy/docker-compose.yml` — Caddy container
 - `miniflux/docker-compose.yml` — Miniflux + PostgreSQL containers
+- `ntfy/docker-compose.yml` — ntfy notification server container
+- `ntfy/server.yml` — ntfy server config
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
+- [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 
 ## Security
 
