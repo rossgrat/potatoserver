@@ -51,6 +51,26 @@ http://alerts.grattafiori.dev {
     }
 }
 
+http://jobs.grattafiori.dev {
+    reverse_proxy job-board:8080
+
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'"
+        Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+    }
+
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10MB
+            roll_keep 5
+        }
+        format json
+    }
+}
+
 http://wubzduh.grattafiori.dev {
     reverse_proxy wubzduh:8080
 
