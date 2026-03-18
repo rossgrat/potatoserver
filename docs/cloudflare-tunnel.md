@@ -22,6 +22,7 @@ Internet → Cloudflare Edge (DDoS/WAF/TLS) → Tunnel (QUIC) → cloudflared �
 | `rss` | Miniflux (via tunnel) | Proxied |
 | `media` | Static media files (via tunnel) | Proxied |
 | `alerts` | ntfy notifications (via tunnel) | Proxied |
+| `jobs` | Job board aggregator (via tunnel) | Proxied |
 | `@` (MX/TXT) | ProtonMail email | DNS-only |
 
 ## Setup
@@ -56,6 +57,8 @@ ingress:
     service: http://localhost:80
   - hostname: alerts.grattafiori.dev
     service: http://localhost:80
+  - hostname: jobs.grattafiori.dev
+    service: http://localhost:80
   - service: http_status:404
 ```
 
@@ -65,6 +68,7 @@ ingress:
 cloudflared tunnel route dns potatoserver rss.grattafiori.dev
 cloudflared tunnel route dns potatoserver media.grattafiori.dev
 cloudflared tunnel route dns potatoserver alerts.grattafiori.dev
+cloudflared tunnel route dns potatoserver jobs.grattafiori.dev
 ```
 
 ### Run as service
