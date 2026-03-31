@@ -1,0 +1,21 @@
+services:
+  lgtm:
+    image: grafana/otel-lgtm:0.22.1
+    container_name: lgtm
+    networks:
+      - caddy-network
+    volumes:
+      - lgtm-data:/data
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+
+networks:
+  caddy-network:
+    external: true
+
+volumes:
+  lgtm-data:

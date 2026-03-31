@@ -8,8 +8,10 @@ up:
 	cd caddy && docker compose up -d
 	cd ntfy && docker compose up -d
 	cd miniflux && docker compose up -d
+	cd lgtm && docker compose up -d
 
 down:
+	cd lgtm && docker compose down
 	cd caddy && docker compose down
 	cd ntfy && docker compose down
 	cd miniflux && docker compose down
@@ -17,7 +19,7 @@ down:
 restart: down up
 
 logs:
-	docker compose -f caddy/docker-compose.yml -f ntfy/docker-compose.yml -f miniflux/docker-compose.yml logs -f
+	docker compose -f caddy/docker-compose.yml -f ntfy/docker-compose.yml -f miniflux/docker-compose.yml -f lgtm/docker-compose.yml logs -f
 
 deploy:
 	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull && make restart"

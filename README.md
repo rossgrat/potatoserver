@@ -10,7 +10,6 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 | Media | `media.grattafiori.dev` | Static media file server |
 | ntfy | `alerts.grattafiori.dev` | Push notification server |
 | wubzduh | `wubzduh.grattafiori.dev` | New music release feed |
-| Job Board | `jobs.grattafiori.dev` | Job board aggregator |
 | Caddy | — | Reverse proxy (hostname-based routing) |
 | PostgreSQL | — | Database backend for Miniflux |
 
