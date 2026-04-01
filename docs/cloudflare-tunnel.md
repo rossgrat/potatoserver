@@ -75,6 +75,14 @@ sudo systemctl enable cloudflared
 sudo systemctl start cloudflared
 ```
 
+OR
+
+```
+sudo systemctl restart cloudflared
+```
+
+Required after modifying `/etc/cloudflared/config`
+
 ## Management
 
 ```bash
