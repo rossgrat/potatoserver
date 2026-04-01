@@ -1,0 +1,8 @@
+apiVersion: 1
+
+providers:
+  - name: "Job Board"
+    type: file
+    options:
+      path: /provisioning/dashboards
+      foldersFromFilesStructure: false

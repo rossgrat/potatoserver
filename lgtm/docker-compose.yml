@@ -6,6 +6,8 @@ services:
       - caddy-network
     volumes:
       - lgtm-data:/data
+      - ./provisioning/dashboards:/provisioning/dashboards
+      - ./provisioning/dashboards/job-board.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/job-board.yaml
     restart: unless-stopped
     deploy:
       resources:
