@@ -26,13 +26,13 @@
     },
     {
       "id": 2,
-      "title": "Jobs Saved (by company)",
+      "title": "Jobs Created (by company)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
-          "expr": "rate(fetcher_jobs_saved_total[5m])",
+          "expr": "rate(fetcher_jobs_created_total[5m])",
           "legendFormat": "{{company}}"
         }
       ],
@@ -43,10 +43,29 @@
       }
     },
     {
+      "id": 9,
+      "title": "Jobs Soft Deleted (by company)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "rate(fetcher_jobs_soft_deleted_total[5m])",
+          "legendFormat": "{{company}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "red" },
+          "custom": { "drawStyle": "bars", "fillOpacity": 30, "stacking": { "mode": "normal" } }
+        }
+      }
+    },
+    {
       "id": 3,
       "title": "Fetch Errors",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
@@ -65,7 +84,7 @@
       "id": 4,
       "title": "Pipeline Tasks Completed",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
@@ -91,7 +110,7 @@
       "id": 5,
       "title": "Task Duration (p50 / p95 / p99)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
       "datasource": { "uid": "prometheus" },
       "targets": [
         {
@@ -126,8 +145,12 @@
           "legendFormat": "Jobs Fetched"
         },
         {
-          "expr": "sum(fetcher_jobs_saved_total)",
-          "legendFormat": "Jobs Saved"
+          "expr": "sum(fetcher_jobs_created_total)",
+          "legendFormat": "Jobs Created"
+        },
+        {
+          "expr": "sum(fetcher_jobs_soft_deleted_total)",
+          "legendFormat": "Jobs Deleted"
         },
         {
           "expr": "sum(outbox_tasks_completed_total{status=\"done\"})",
