@@ -35,9 +35,14 @@ grafana.grattafiori.dev {
     reverse_proxy lgtm:3000
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+        resolvers 9.9.9.9 149.112.112.112
     }
 }
 ```
+
+The `resolvers` line is required on this host: the network blocks `1.1.1.1`/`8.8.8.8` and the local
+router hangs (rather than returning NXDOMAIN) on the nonexistent `_acme-challenge.*` name, which
+breaks certmagic's DNS-01 zone detection. Quad9 is reachable and answers cleanly.
 
 ## How it was set up
 
@@ -64,7 +69,9 @@ grafana.grattafiori.dev {
    gave the data volume to uid 1000 so Caddy can write certs, and rebuilt the custom image:
 
    ```bash
-   docker run --rm -v caddy_caddy_data:/data alpine chown -R 1000:1000 /data
+   # Caddy runs as uid 1000; give it ownership of the cert/config volumes
+   docker run --rm -v caddy_caddy_data:/data -v caddy_caddy_config:/config alpine \
+     chown -R 1000:1000 /data /config
    cd caddy && docker compose up -d --build
    ```
 

@@ -80,6 +80,9 @@ grafana.grattafiori.dev {
 
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		# This network blocks 1.1.1.1/8.8.8.8 and the router hangs on NXDOMAIN, which
+		# breaks ACME zone detection. Quad9 is reachable and answers cleanly.
+		resolvers 9.9.9.9 149.112.112.112
 	}
 
 	header {
