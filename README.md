@@ -10,16 +10,19 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 | Media | `media.grattafiori.dev` | Static media file server |
 | ntfy | `alerts.grattafiori.dev` | Push notification server |
 | wubzduh | `wubzduh.grattafiori.dev` | New music release feed |
+| Grafana (lgtm) | `grafana.grattafiori.dev` | Observability — **tailnet-only**, see [docs/tailscale.md](docs/tailscale.md) |
 | Caddy | — | Reverse proxy (hostname-based routing) |
 | PostgreSQL | — | Database backend for Miniflux |
 
 ## Architecture
 
 ```
-Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC) → cloudflared → Caddy:80 → services
+Public services:   Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC) → cloudflared → Caddy:80 → service
+Private (Grafana): Tailscale device → tailnet → host:80 → Caddy → lgtm:3000
 ```
 
-No open inbound ports. No exposed home IP.
+Public services have no open inbound ports and no exposed home IP. Grafana is not on the public
+internet at all — its hostname resolves to the host's Tailscale IP, so only tailnet devices can reach it.
 
 ## Setup
 
@@ -58,6 +61,7 @@ make deploy    # Deploy to server (git pull + restart)
 ## Docs
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
+- [Tailscale](docs/tailscale.md) — How Grafana is served privately over the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 
 ## Security

@@ -59,6 +59,9 @@ ingress:
   - service: http_status:404
 ```
 
+> Grafana (`grafana.grattafiori.dev`) is intentionally **not** in the tunnel — it is served
+> privately over Tailscale. See [tailscale.md](tailscale.md).
+
 ### Add DNS routes
 
 ```bash

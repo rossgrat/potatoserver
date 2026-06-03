@@ -71,6 +71,8 @@ http://jobs.grattafiori.dev {
 	}
 }
 
+# Tailnet-only: grafana.grattafiori.dev resolves to the host's Tailscale IP, not Cloudflare.
+# Reached over the tailnet (WireGuard-encrypted), so plain http here is fine.
 http://grafana.grattafiori.dev {
 	reverse_proxy lgtm:3000
 
