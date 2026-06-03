@@ -72,9 +72,15 @@ http://jobs.grattafiori.dev {
 }
 
 # Tailnet-only: grafana.grattafiori.dev resolves to the host's Tailscale IP, not Cloudflare.
-# Reached over the tailnet (WireGuard-encrypted), so plain http here is fine.
-http://grafana.grattafiori.dev {
+# Caddy terminates TLS itself here (Cloudflare no longer does). The cert comes from Let's Encrypt
+# via the Cloudflare DNS-01 challenge — the host isn't publicly reachable, and .dev is HSTS-preloaded
+# so browsers refuse plain http. Requires CLOUDFLARE_API_TOKEN and the cloudflare DNS plugin.
+grafana.grattafiori.dev {
 	reverse_proxy lgtm:3000
+
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+	}
 
 	header {
 		X-Frame-Options "SAMEORIGIN"

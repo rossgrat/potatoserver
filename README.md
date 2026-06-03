@@ -18,7 +18,7 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 
 ```
 Public services:   Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC) → cloudflared → Caddy:80 → service
-Private (Grafana): Tailscale device → tailnet → host:80 → Caddy → lgtm:3000
+Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) → lgtm:3000
 ```
 
 Public services have no open inbound ports and no exposed home IP. Grafana is not on the public
