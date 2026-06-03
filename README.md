@@ -62,6 +62,7 @@ make deploy    # Deploy to server (git pull + restart)
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
 - [Tailscale](docs/tailscale.md) — How Grafana is served privately over the tailnet
+- [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 
 ## Security
