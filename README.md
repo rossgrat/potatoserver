@@ -7,6 +7,7 @@ Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/
 | Service | URL | Description |
 |---|---|---|
 | Miniflux | `rss.grattafiori.dev` | RSS reader |
+| GoatCounter | `stats.grattafiori.dev` | Blog analytics with a private dashboard |
 | Media | `media.grattafiori.dev` | Static media file server |
 | ntfy | `alerts.grattafiori.dev` | Push notification server |
 | wubzduh | `wubzduh.grattafiori.dev` | New music release feed |
@@ -56,6 +57,7 @@ make deploy    # Deploy to server (git pull + restart)
 - `miniflux/docker-compose.yml` — Miniflux + PostgreSQL containers
 - `ntfy/docker-compose.yml` — ntfy notification server container
 - `ntfy/server.yml` — ntfy server config
+- `goatcounter/docker-compose.yml` — GoatCounter and its SQLite volume
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
@@ -64,6 +66,7 @@ make deploy    # Deploy to server (git pull + restart)
 - [Tailscale](docs/tailscale.md) — How Grafana is served privately over the tailnet
 - [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
+- [GoatCounter](docs/goatcounter.md) — Blog analytics, deployment, and backups
 
 ## Security
 

@@ -1,3 +1,10 @@
+http://stats.grattafiori.dev {
+	reverse_proxy goatcounter:8080 {
+		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
+		header_up X-Forwarded-Proto https
+	}
+}
+
 http://rss.grattafiori.dev {
 	reverse_proxy miniflux:8080
 
