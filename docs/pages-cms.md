@@ -12,10 +12,15 @@ The database does not publish a host port.
 
 The image pins Pages CMS 2.1.8, Node 24.22.2, and their source or image digests.
 PostgreSQL uses version 18.6 with a pinned digest.
-The build uses the upstream dependency lockfile.
+The checked-in lockfile pins patched dependencies, including Next.js 16.4.6, Better Auth 1.7.20, and Tiptap 3.33.1.
+The build uses Docker Buildx 0.38.2 and retains an npm download cache.
+The `r1` image suffix identifies this dependency update.
 Database migrations run in a separate container before the application starts.
 
 ## Initial setup
+
+Install [Docker Buildx 0.38.2](https://github.com/docker/buildx/releases/tag/v0.38.2) on potatoserver before building the image.
+The installed plugin lives at `/home/rossgrat/.docker/cli-plugins/docker-buildx`.
 
 On the laptop, generate `pages-cms/.env` with a database password, a session secret, and a 32-byte base64 encryption key.
 Use `pages-cms/.env.example` for the variable names.
@@ -72,6 +77,12 @@ Before an upgrade, retain the previous image and its database backup.
 If a migration changes the database, restore the matching backup before starting the previous image.
 Restore into a separate database first to test the backup.
 Never remove the `pages-cms_postgres_data` volume during routine updates.
+
+The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
+The application source remains pinned to Pages CMS 2.1.8.
+The production audit still reports upstream Zod 3 and Nodemailer findings.
+The file API requires authentication before Zod validation, and this deployment does not configure email delivery.
+Review these findings when updating the lockfile or enabling email features.
 
 See the upstream [self-hosting guide](https://pagescms.org/docs/guides/installing/self-host/),
 [database guide](https://pagescms.org/docs/development/database/), and
