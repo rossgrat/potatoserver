@@ -25,3 +25,17 @@ logs:
 
 deploy:
 	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull && make restart"
+
+.PHONY: cms-build cms-up cms-logs cms-deploy
+
+cms-build:
+	docker build -t potatoserver-pages-cms:2.1.8-node24.22.2 pages-cms
+
+cms-up:
+	cd pages-cms && docker compose up -d --no-build --wait app
+
+cms-logs:
+	cd pages-cms && docker compose logs --tail=100 -f app
+
+cms-deploy:
+	ssh $(SERVER) 'cd $(REMOTE_DIR) && git pull --ff-only && ./pages-cms/backup.sh /home/rossgrat/backups/pages-cms/$$(date -u +%Y%m%dT%H%M%SZ) && make cms-build cms-up'

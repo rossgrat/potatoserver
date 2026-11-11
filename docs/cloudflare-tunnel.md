@@ -19,6 +19,7 @@ Internet → Cloudflare Edge (DDoS/WAF/TLS) → Tunnel (QUIC) → cloudflared �
 | Subdomain | Purpose | Proxy |
 |---|---|---|
 | `ross` | GitHub Pages portfolio | Proxied |
+| `cms` | Pages CMS with GitHub sign-in (via tunnel) | Proxied |
 | `rss` | Miniflux through Tailscale | DNS-only A record |
 | `grafana` | Grafana through Tailscale | DNS-only A record |
 | `media` | Static media files (via tunnel) | Proxied |
@@ -64,6 +65,8 @@ ingress:
     service: http://localhost:80
   - hostname: stats.grattafiori.dev
     service: http://localhost:80
+  - hostname: cms.grattafiori.dev
+    service: http://127.0.0.1:3030
   - service: http_status:404
 ```
 
@@ -71,6 +74,8 @@ Miniflux and Grafana use private Tailscale access. Their DNS-only A records poin
 Keep both hostnames out of the tunnel configuration. See [tailscale.md](tailscale.md).
 
 GoatCounter remains on the tunnel because public visitors send analytics to its `/count` endpoint.
+Pages CMS uses the same tunnel and forwards directly to its loopback port, without Caddy.
+See [Pages CMS](pages-cms.md) for its installation script and GitHub sign-in.
 
 ### Add DNS routes
 
@@ -80,6 +85,7 @@ cloudflared tunnel route dns potatoserver alerts.grattafiori.dev
 cloudflared tunnel route dns potatoserver wubzduh.grattafiori.dev
 cloudflared tunnel route dns potatoserver jobs.grattafiori.dev
 cloudflared tunnel route dns potatoserver stats.grattafiori.dev
+cloudflared tunnel route dns potatoserver cms.grattafiori.dev
 ```
 
 ### Run as service

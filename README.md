@@ -6,6 +6,7 @@ Potatoserver provides public services through [Cloudflare Tunnel](docs/cloudflar
 
 | Service | URL | Description |
 |---|---|---|
+| Pages CMS | `cms.grattafiori.dev` | Blog editor with GitHub sign-in |
 | Miniflux | `rss.grattafiori.dev` | RSS reader, accessible through Tailscale |
 | GoatCounter | `stats.grattafiori.dev` | Blog analytics with a private dashboard |
 | Media | `media.grattafiori.dev` | Static media file server |
@@ -61,6 +62,9 @@ make deploy    # Deploy to server (git pull + restart)
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
+
+- [Pages CMS](docs/pages-cms.md): Blog editing, deployment, and backups
+- [Deployment overrides](docs/deployment-overrides.md): Existing application versions and database mounts
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
 - [Tailscale](docs/tailscale.md): Private access to Miniflux and Grafana
