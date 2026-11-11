@@ -5,7 +5,8 @@ script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 evidence=${1:?Pass an existing evidence directory on potatoserver}
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
-bash "$script_dir/apply-k3s.sh" --diff
+bash /home/rossgrat/repos/network/ops/apply-k3s.sh --diff
+"${kubectl[@]}" wait --for=condition=Ready node/potatoserver --timeout=30s
 "${kubectl[@]}" get deployments,statefulsets,pods,persistentvolumeclaims -A -o json > "$evidence/cluster-health.json"
 "${kubectl[@]}" get persistentvolumes -o json > "$evidence/volumes.json"
 node - "$evidence" <<'JS'
@@ -44,4 +45,19 @@ for url in https://rss.grattafiori.dev/healthcheck https://stats.grattafiori.dev
   printf '%s HTTP %s\n' "$url" "$status"
 done
 docker exec lgtm /otel-lgtm/docker/healthcheck.sh > "$evidence/lgtm-health.txt"
+systemctl is-active k3s docker tailscaled cloudflared
+systemctl is-active potatoserver-k3s-backup.timer
+XDG_RUNTIME_DIR="/run/user/$(id -u)" systemctl --user is-active potatoserver-backup.timer
+docker run --rm --read-only --network caddy-network -i --entrypoint node "$(cat "$script_dir/../k3s/backup-image")" --input-type=module <<'JS'
+import net from 'node:net';
+const reachable = port => new Promise(resolve => {
+  const socket = net.connect({ host: '172.18.0.1', port });
+  const finish = result => { socket.destroy(); resolve(result); };
+  socket.setTimeout(1500, () => finish(false));
+  socket.once('error', () => finish(false));
+  socket.once('connect', () => finish(true));
+});
+if (!await reachable(80) || await reachable(6443) || await reachable(10250)) throw new Error('Docker access restrictions failed');
+console.log('Docker web access and blocked cluster administration PASS');
+JS
 printf 'Final application and infrastructure health PASS\n' | tee "$evidence/result.txt"

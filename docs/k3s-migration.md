@@ -335,6 +335,15 @@ Do not restart the old worker alongside the K3s worker.
 Reboot recovery and seven successful nightly backups remain pending until those events occur.
 Functional tests do not replace those observations.
 
+The final application backup is `/home/rossgrat/backups/k3s-nightly-20261111T225502Z` on potatoserver.
+Its complete checksum test passed after all six transfers.
+The Wubzduh and Job Board dumps passed isolated restoration, data comparison, password tests, and application startup.
+The ntfy online backup passed isolated startup, saved-token authentication, and anonymous-access rejection.
+Final verification found seven healthy deployments, five healthy databases, retained storage, and zero application pod restarts.
+All seven application and infrastructure health URLs returned HTTP 200.
+The declared configuration matched the cluster. Docker reached the host web port but could not reach cluster administration.
+The evidence remains in the backup's `restore-results` and `final-verification` directories.
+
 ## Final protected checkpoint
 
 The final script requires root access because it reads the K3s encryption material and protected host credentials.
