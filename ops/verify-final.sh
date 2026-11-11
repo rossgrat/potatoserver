@@ -3,15 +3,17 @@ set -euo pipefail
 umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 evidence=${1:?Pass an existing evidence directory on potatoserver}
+case ${2:-} in ''|--after-reboot) ;; *) exit 2 ;; esac
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
 bash /home/rossgrat/repos/network/ops/apply-k3s.sh --diff
 "${kubectl[@]}" wait --for=condition=Ready node/potatoserver --timeout=30s
 "${kubectl[@]}" get deployments,statefulsets,pods,persistentvolumeclaims -A -o json > "$evidence/cluster-health.json"
 "${kubectl[@]}" get persistentvolumes -o json > "$evidence/volumes.json"
-node - "$evidence" <<'JS'
+node - "$evidence" "${2:-}" <<'JS'
 const fs = require('fs');
 const path = process.argv[2];
+const afterReboot = process.argv[3] === '--after-reboot';
 const items = JSON.parse(fs.readFileSync(path + '/cluster-health.json')).items;
 const namespaces = ['miniflux', 'umami', 'pages-cms', 'wubzduh', 'job-board', 'ntfy'];
 for (const namespace of namespaces) {
@@ -27,7 +29,7 @@ for (const namespace of namespaces) {
 }
 for (const item of items.filter(item => namespaces.includes(item.metadata.namespace))) {
   if (item.kind === 'Pod' && item.metadata.labels?.app) {
-    if (item.status.phase !== 'Running' || item.status.containerStatuses.some(container => !container.ready || container.restartCount !== 0)) throw Error(`${item.metadata.namespace}/${item.metadata.name} is unhealthy`);
+    if (item.status.phase !== 'Running' || item.status.containerStatuses.some(container => !container.ready || (!afterReboot && container.restartCount !== 0))) throw Error(`${item.metadata.namespace}/${item.metadata.name} is unhealthy`);
   }
   if (item.kind === 'PersistentVolumeClaim' && item.status.phase !== 'Bound') throw Error('Application storage is not bound');
 }

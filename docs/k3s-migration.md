@@ -352,6 +352,13 @@ It saves the current host state, Git history, and migration tools on potatoserve
 It also restores the current cluster in isolation and compares application credentials with the live cluster.
 It does not reboot the server.
 
+The protected checkpoint passed on November 11 at 23:13 UTC.
+The host archive is `/home/rossgrat/backups/k3s-final-20261111T231320Z` on potatoserver.
+Its checksums, archive integrity, source bundle, ownership, and permissions passed verification.
+The current cluster backup is `/home/rossgrat/backups/k3s-state-20261111T231330Z`.
+Isolated recovery preserved all ten application Secrets across six namespaces, including their object identities and contents.
+All applications remained healthy after the checkpoint.
+
 From the Mac, run:
 
 ```sh
@@ -361,8 +368,12 @@ ssh -t -o HostName=100.108.26.48 -o HostKeyAlias=potatoserver potatoserver \
 
 After that checkpoint passes, arrange physical access before the reboot test.
 The earlier boot history includes a manual power cycle. Remote SSH alone does not provide recovery from that failure.
-After the reboot, repeat `ops/verify-final.sh` with a new evidence directory and test authenticated application access.
-Record the uptime and both backup timers before marking reboot recovery complete.
+After the reboot, run `bash /home/rossgrat/k3s-migration-tools/ops/verify-reboot.sh` on potatoserver.
+The script requires a different boot identity and the same persistent claims and volumes.
+It tests service health, network restrictions, and both backup timers.
+It also requires ready application containers without further restarts during a 30-second observation.
+Restart counts from the boot itself do not fail this test.
+Test authenticated application access before marking the full reboot checkpoint complete.
 
 ## Protected host state
 
@@ -404,3 +415,4 @@ Backups remain in dated directories. Automatic deletion is not configured.
 - [K3s manual image import](https://docs.k3s.io/installation/airgap)
 - [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)
 - [ntfy listening addresses, authentication, and message history](https://docs.ntfy.sh/config/)
+- [Kubernetes container restart counters](https://github.com/kubernetes/api/blob/master/core/v1/generated.proto)
