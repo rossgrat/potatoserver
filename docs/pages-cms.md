@@ -23,6 +23,34 @@ Repository requests use [Better Auth token renewal](https://better-auth.com/docs
 The build also tests this renewal path.
 Database migrations run in a separate container before the application starts.
 
+## Security boundary
+
+The CMS is public over HTTPS through Cloudflare Tunnel.
+It does not require Tailscale or a separate Cloudflare Access login.
+The owner restriction runs in the application after GitHub identifies the account.
+
+Session cookies use Secure, HttpOnly, and SameSite=Lax.
+These attributes restrict cookie transport, script access, and cross-site use.
+The app rejects cross-site authentication requests and invalid webhook signatures.
+The application runs as the non-root Node user.
+Its host port binds only to the local loopback address.
+
+A stolen GitHub account or CMS session can let an attacker act as you.
+A compromised server or application can also expose the credentials stored there.
+Protect your GitHub account with a [passkey or two-factor authentication](https://docs.github.com/en/authentication/securing-your-account-with-two-factor-authentication-2fa/about-two-factor-authentication).
+The owner restriction does not guarantee that the application has no vulnerabilities.
+
+The GitHub App has access only to the blog repository.
+Its upstream manifest grants write access to Contents, Actions, and Administration.
+Administration access increases the impact of a stolen app credential.
+Review that permission before expanding the installation to another repository.
+GitHub documents [how to change app permissions](https://docs.github.com/en/apps/maintaining-github-apps/modifying-a-github-app-registration#changing-the-permissions-of-a-github-app).
+
+The November 11, 2026 review found one owner account, one active owner session, and no collaborators or invitations.
+All seven authentication and token tests passed.
+Unauthenticated content requests returned 401, and email-code login endpoints returned 404.
+Password login was disabled in the deployed authentication configuration.
+
 ## Initial setup
 
 Install [Docker Buildx 0.38.2](https://github.com/docker/buildx/releases/tag/v0.38.2) on potatoserver before building the image.
@@ -86,9 +114,11 @@ Never remove the `pages-cms_postgres_data` volume during routine updates.
 
 The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
 The application source is pinned to Pages CMS 2.1.8 with the local authentication patch in `pages-cms/patch-auth.mjs`.
-The production audit still reports upstream Zod 3 and Nodemailer findings.
+The November 11, 2026 production audit reported zero critical, two high, four moderate, and four low findings.
+The high findings affect [Zod collection validation](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) and [Nodemailer email handling](https://github.com/advisories/GHSA-p6gq-j5cr-w38f).
 The file API requires authentication before Zod validation, and this deployment does not configure email delivery.
-Review these findings when updating the lockfile or enabling email features.
+These restrictions reduce exposure but do not resolve the vulnerable dependencies.
+Review the findings when updating the lockfile or enabling email features.
 
 See the upstream [self-hosting guide](https://pagescms.org/docs/guides/installing/self-host/),
 [database guide](https://pagescms.org/docs/development/database/), and
