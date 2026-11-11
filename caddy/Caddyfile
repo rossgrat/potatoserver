@@ -5,8 +5,13 @@ http://stats.grattafiori.dev {
 	}
 }
 
-http://rss.grattafiori.dev {
+rss.grattafiori.dev {
 	reverse_proxy miniflux:8080
+
+	tls {
+		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
+		resolvers 9.9.9.9 149.112.112.112
+	}
 
 	header {
 		X-Frame-Options "SAMEORIGIN"

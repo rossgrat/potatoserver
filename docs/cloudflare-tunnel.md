@@ -19,9 +19,13 @@ Internet → Cloudflare Edge (DDoS/WAF/TLS) → Tunnel (QUIC) → cloudflared �
 | Subdomain | Purpose | Proxy |
 |---|---|---|
 | `ross` | GitHub Pages portfolio | Proxied |
-| `rss` | Miniflux (via tunnel) | Proxied |
+| `rss` | Miniflux through Tailscale | DNS-only A record |
+| `grafana` | Grafana through Tailscale | DNS-only A record |
 | `media` | Static media files (via tunnel) | Proxied |
 | `alerts` | ntfy notifications (via tunnel) | Proxied |
+| `jobs` | Job Board (via tunnel) | Proxied |
+| `wubzduh` | Music release feed (via tunnel) | Proxied |
+| `stats` | GoatCounter dashboard and collection (via tunnel) | Proxied |
 | `@` (MX/TXT) | ProtonMail email | DNS-only |
 
 ## Setup
@@ -43,31 +47,39 @@ cloudflared tunnel create potatoserver
 
 ### Configure
 
-Config lives at `/etc/cloudflared/config.yml`:
+The configuration lives at `/etc/cloudflared/config.yml`:
 
 ```yaml
 tunnel: <TUNNEL_UUID>
 credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
 
 ingress:
-  - hostname: rss.grattafiori.dev
-    service: http://localhost:80
   - hostname: media.grattafiori.dev
     service: http://localhost:80
   - hostname: alerts.grattafiori.dev
     service: http://localhost:80
+  - hostname: wubzduh.grattafiori.dev
+    service: http://localhost:80
+  - hostname: jobs.grattafiori.dev
+    service: http://localhost:80
+  - hostname: stats.grattafiori.dev
+    service: http://localhost:80
   - service: http_status:404
 ```
 
-> Grafana (`grafana.grattafiori.dev`) is intentionally **not** in the tunnel — it is served
-> privately over Tailscale. See [tailscale.md](tailscale.md).
+Miniflux and Grafana use private Tailscale access. Their DNS-only A records point to `100.108.26.48`.
+Keep both hostnames out of the tunnel configuration. See [tailscale.md](tailscale.md).
+
+GoatCounter remains on the tunnel because public visitors send analytics to its `/count` endpoint.
 
 ### Add DNS routes
 
 ```bash
-cloudflared tunnel route dns potatoserver rss.grattafiori.dev
 cloudflared tunnel route dns potatoserver media.grattafiori.dev
 cloudflared tunnel route dns potatoserver alerts.grattafiori.dev
+cloudflared tunnel route dns potatoserver wubzduh.grattafiori.dev
+cloudflared tunnel route dns potatoserver jobs.grattafiori.dev
+cloudflared tunnel route dns potatoserver stats.grattafiori.dev
 ```
 
 ### Run as service
@@ -84,7 +96,7 @@ OR
 sudo systemctl restart cloudflared
 ```
 
-Required after modifying `/etc/cloudflared/config`
+Restart cloudflared after you change `/etc/cloudflared/config.yml`.
 
 ## Management
 

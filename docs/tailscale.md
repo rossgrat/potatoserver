@@ -1,38 +1,29 @@
 # Tailscale
 
-Grafana is served **privately over the tailnet** instead of the public internet. The host
-(`potatoserver`) is already a Tailscale node, so any device on the tailnet can reach it; nobody
-else can.
+Miniflux and Grafana use the tailnet, the private Tailscale network. Both services keep their existing HTTPS hostnames.
 
-## Architecture
+| Service | URL | Caddy destination |
+|---|---|---|
+| Miniflux | `https://rss.grattafiori.dev` | `miniflux:8080` |
+| Grafana | `https://grafana.grattafiori.dev` | `lgtm:3000` |
 
-```
-Tailscale device → tailnet (WireGuard) → host:443 → Caddy (TLS) → lgtm:3000
-```
-
-`grafana.grattafiori.dev` resolves to the host's **Tailscale IP** (`100.108.26.48`), which lives in
-the CGNAT range `100.64.0.0/10` and is not routable from the public internet. Caddy listens on the
-host's `tailscale0` interface (it publishes `80/443` to the host) and reverse-proxies to Grafana.
+Their DNS-only A records point to `100.108.26.48`, the Tailscale address of potatoserver.
+Neither hostname has a Cloudflare Tunnel route. GoatCounter remains public because its `/count` endpoint receives analytics from website visitors.
 
 ## HTTPS
 
-`.dev` is on the [HSTS preload list](https://hstspreload.org/), so browsers hard-force HTTPS for
-every `.dev` hostname — plain http is refused. Cloudflare used to terminate TLS at its edge; now
-that Grafana is off the tunnel, **Caddy terminates TLS itself**.
+Caddy accepts private HTTPS connections on host port 443 and forwards them to each service.
+Caddy obtains certificates through a DNS challenge, proof of domain ownership through DNS records.
+The [DNS challenge](https://caddyserver.com/docs/automatic-https#dns-challenge) works without public access to the service.
 
-The host isn't publicly reachable, so HTTP-01 / TLS-ALPN-01 ACME challenges can't work. Caddy
-instead uses the **Cloudflare DNS-01 challenge** to get a real Let's Encrypt cert for
-`grafana.grattafiori.dev`. This needs:
+Caddy uses the existing `caddy-dns/cloudflare` plugin and `CLOUDFLARE_API_TOKEN` from `caddy/.env`.
+Keep that token available for automatic certificate renewal. Removing a tunnel route does not remove the need for Cloudflare DNS access.
 
-- A Caddy build that includes the `caddy-dns/cloudflare` plugin — see [`caddy/Dockerfile`](../caddy/Dockerfile).
-- A Cloudflare API token with **Zone → DNS → Edit** on `grattafiori.dev`, provided to Caddy as
-  `CLOUDFLARE_API_TOKEN` via `caddy/.env` (gitignored — never committed).
+The Miniflux route uses this TLS configuration:
 
-The relevant Caddyfile block:
-
-```
-grafana.grattafiori.dev {
-    reverse_proxy lgtm:3000
+```caddyfile
+rss.grattafiori.dev {
+    reverse_proxy miniflux:8080
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
         resolvers 9.9.9.9 149.112.112.112
@@ -40,54 +31,34 @@ grafana.grattafiori.dev {
 }
 ```
 
-The `resolvers` line is required on this host: the network blocks `1.1.1.1`/`8.8.8.8` and the local
-router hangs (rather than returning NXDOMAIN) on the nonexistent `_acme-challenge.*` name, which
-breaks certmagic's DNS-01 zone detection. Quad9 is reachable and answers cleanly.
-
-## How it was set up
-
-1. **Cloudflare DNS** — `grafana` is a **DNS-only** (grey cloud) A record → the host's Tailscale IP:
-
-   | Type | Name | Content | Proxy |
-   |---|---|---|---|
-   | A | `grafana` | `100.108.26.48` | DNS only |
-
-   This is what removes Grafana from the public internet: the hostname resolves to an unroutable
-   CGNAT address that only tailnet devices can reach.
-
-2. **cloudflared** — removed the `grafana.grattafiori.dev` ingress rule from
-   `/etc/cloudflared/config.yml` and restarted the service.
-
-3. **Cloudflare API token** — created a token (Zone:DNS:Edit on `grattafiori.dev`) and wrote it to
-   `caddy/.env` on the server:
-
-   ```
-   CLOUDFLARE_API_TOKEN=<token>
-   ```
-
-4. **Caddy** — switched the `grafana.grattafiori.dev` block to TLS via the Cloudflare DNS challenge,
-   gave the data volume to uid 1000 so Caddy can write certs, and rebuilt the custom image:
-
-   ```bash
-   # Caddy runs as uid 1000; give it ownership of the cert/config volumes
-   docker run --rm -v caddy_caddy_data:/data -v caddy_caddy_config:/config alpine \
-     chown -R 1000:1000 /data /config
-   cd caddy && docker compose up -d --build
-   ```
-
 ## Access
 
-From any device on the tailnet:
+Connect the client device to Tailscale. Open the service URL from the table above.
+Access also depends on the Tailscale access policy.
 
+On potatoserver, make sure that Tailscale reports `Running` and an assigned address:
+
+```sh
+tailscale status
+tailscale ip -4
 ```
-https://grafana.grattafiori.dev
+
+If Tailscale needs authentication, run this command on potatoserver:
+
+```sh
+sudo tailscale up --timeout=30s
 ```
 
-Devices not on the tailnet get a `100.x` address that routes nowhere — Grafana is unreachable.
+Complete any login link that the command prints. If the server address changes, update both private DNS records.
 
-## Notes
+## Routing changes
 
-- The host's Tailscale IP (`100.108.26.48`) is stable per-node but will change if the node is
-  removed and re-added to the tailnet. Update the Cloudflare A record if that happens.
-- To check the host's tailnet IP: `tailscale ip -4` on the server.
-- Cert renewal is automatic (Caddy), as long as the Cloudflare token stays valid.
+On potatoserver, make sure that the mounted Caddyfile is valid before reloading Caddy:
+
+```sh
+docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+```
+
+Keep `rss.grattafiori.dev` and `grafana.grattafiori.dev` out of `/etc/cloudflared/config.yml`.
+Keep their DNS records unproxied. Public services still use the tunnel, including GoatCounter.

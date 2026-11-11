@@ -1,7 +1,7 @@
 # Hosting services on Tailscale
 
 A short reference for putting a service on the tailnet (private) instead of the public internet.
-For the concrete Grafana setup that uses pattern 3 below, see [tailscale.md](tailscale.md).
+For the Miniflux and Grafana setup that uses pattern 3 below, see [tailscale.md](tailscale.md).
 
 ## The mental model
 

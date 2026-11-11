@@ -1,12 +1,12 @@
 # potatoserver
 
-Home server infrastructure exposed to the internet via [Cloudflare Tunnel](docs/cloudflare-tunnel.md).
+Potatoserver provides public services through [Cloudflare Tunnel](docs/cloudflare-tunnel.md) and private services through [Tailscale](docs/tailscale.md).
 
 ## Services
 
 | Service | URL | Description |
 |---|---|---|
-| Miniflux | `rss.grattafiori.dev` | RSS reader |
+| Miniflux | `rss.grattafiori.dev` | RSS reader, accessible through Tailscale |
 | GoatCounter | `stats.grattafiori.dev` | Blog analytics with a private dashboard |
 | Media | `media.grattafiori.dev` | Static media file server |
 | ntfy | `alerts.grattafiori.dev` | Push notification server |
@@ -22,8 +22,8 @@ Public services:   Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC)
 Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) → lgtm:3000
 ```
 
-Public services have no open inbound ports and no exposed home IP. Grafana is not on the public
-internet at all — its hostname resolves to the host's Tailscale IP, so only tailnet devices can reach it.
+Miniflux and Grafana use the host's Tailscale IP. Miniflux uses the same private HTTPS path as Grafana, with `miniflux:8080` as its destination.
+GoatCounter remains public so website visitors can send analytics to its `/count` endpoint.
 
 ## Setup
 
@@ -52,7 +52,7 @@ make deploy    # Deploy to server (git pull + restart)
 
 ## Configuration Files
 
-- `caddy/Caddyfile` — Reverse proxy config (use `http://` prefix, Cloudflare handles TLS)
+- `caddy/Caddyfile`: Routing configuration. Public tunnel routes use `http://`. Private routes use Caddy HTTPS.
 - `caddy/docker-compose.yml` — Caddy container
 - `miniflux/docker-compose.yml` — Miniflux + PostgreSQL containers
 - `ntfy/docker-compose.yml` — ntfy notification server container
@@ -63,7 +63,7 @@ make deploy    # Deploy to server (git pull + restart)
 ## Docs
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
-- [Tailscale](docs/tailscale.md) — How Grafana is served privately over the tailnet
+- [Tailscale](docs/tailscale.md): Private access to Miniflux and Grafana
 - [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 - [GoatCounter](docs/goatcounter.md) — Blog analytics, deployment, and backups
