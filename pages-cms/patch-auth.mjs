@@ -28,3 +28,35 @@ export default function Page() {
   redirect("/sign-in");
 }
 `);
+
+let githubAccount = fs.readFileSync("lib/github-account.ts", "utf8");
+const accountReader = `const getGithubAccount = cache(async (userId: string) => {
+  return db.query.accountTable.findFirst({
+    where: and(
+      eq(accountTable.userId, userId),
+      eq(accountTable.providerId, "github")
+    )
+  });
+});`;
+if (!githubAccount.includes(accountReader)) throw new Error("Unexpected GitHub account reader");
+githubAccount = githubAccount.replace(accountReader, `const getGithubAccount = cache(async (userId: string) => {
+  const account = await db.query.accountTable.findFirst({
+    where: and(
+      eq(accountTable.userId, userId),
+      eq(accountTable.providerId, "github")
+    )
+  });
+  if (!account) return undefined;
+
+  const tokens = await auth.api.getAccessToken({
+    body: { accountId: account.id, userId },
+  });
+  return {
+    ...account,
+    accessToken: tokens.accessToken,
+    accessTokenExpiresAt: tokens.accessTokenExpiresAt ?? account.accessTokenExpiresAt,
+  };
+});`);
+githubAccount = 'import { auth } from "@/lib/auth";\n' + githubAccount;
+fs.writeFileSync("lib/github-account.ts", githubAccount);
+fs.copyFileSync(new URL("./token-refresh.test.mjs", import.meta.url), "scripts/token-refresh.test.mjs");

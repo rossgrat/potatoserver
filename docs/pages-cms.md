@@ -17,8 +17,10 @@ The image pins Pages CMS 2.1.8, Node 24.22.2, and their source or image digests.
 PostgreSQL uses version 18.6 with a pinned digest.
 The checked-in lockfile pins patched dependencies, including Next.js 16.4.6, Better Auth 1.7.20, and Tiptap 3.33.1.
 The build uses Docker Buildx 0.38.2 and retains an npm download cache.
-The `r2` image suffix identifies the owner-only authentication patch.
+The `r3` image suffix identifies the owner-only authentication and token renewal patches.
 Every image build tests that other GitHub identities are rejected and email authentication is disabled.
+Repository requests use [Better Auth token renewal](https://better-auth.com/docs/concepts/oauth#get-access-token) when the GitHub access token expires.
+The build also tests this renewal path.
 Database migrations run in a separate container before the application starts.
 
 ## Initial setup
