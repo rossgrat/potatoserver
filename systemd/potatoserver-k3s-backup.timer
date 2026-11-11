@@ -1,0 +1,10 @@
+[Unit]
+Description=Back up K3s state each night
+
+[Timer]
+OnCalendar=*-*-* 02:55:00 America/Chicago
+Persistent=true
+Unit=potatoserver-k3s-backup.service
+
+[Install]
+WantedBy=timers.target

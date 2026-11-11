@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly potatoserver application backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 America/Chicago
+Persistent=true
+
+[Install]
+WantedBy=timers.target

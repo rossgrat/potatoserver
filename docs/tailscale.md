@@ -4,7 +4,7 @@ Miniflux and Grafana use the tailnet, the private Tailscale network. Both servic
 
 | Service | URL | Caddy destination |
 |---|---|---|
-| Miniflux | `https://rss.grattafiori.dev` | `miniflux:8080` |
+| Miniflux | `https://rss.grattafiori.dev` | `172.18.0.1:30081` |
 | Grafana | `https://grafana.grattafiori.dev` | `lgtm:3000` |
 
 Their DNS-only A records point to `100.108.26.48`, the Tailscale address of potatoserver.
@@ -23,7 +23,7 @@ The Miniflux route uses this TLS configuration:
 
 ```caddyfile
 rss.grattafiori.dev {
-    reverse_proxy miniflux:8080
+    reverse_proxy 172.18.0.1:30081
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
         resolvers 9.9.9.9 149.112.112.112

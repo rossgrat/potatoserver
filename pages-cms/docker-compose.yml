@@ -39,8 +39,10 @@ services:
     ports:
       - "127.0.0.1:3030:3000"
     networks:
-      - default
-      - database
+      default:
+      database:
+      caddy-network:
+        aliases: [pages-cms]
     mem_limit: 1g
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/sign-in').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
@@ -50,6 +52,8 @@ services:
       start_period: 30s
 
 networks:
+  caddy-network:
+    external: true
   database:
     internal: true
 

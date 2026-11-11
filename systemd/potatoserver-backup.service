@@ -1,0 +1,9 @@
+[Unit]
+Description=Potatoserver application backup
+
+[Service]
+Type=oneshot
+UMask=0077
+Nice=10
+TimeoutStartSec=20min
+ExecStart=/bin/bash -c 'exec /bin/bash /home/rossgrat/k3s-migration-tools/ops/migration-backup.sh "/home/rossgrat/backups/k3s-nightly-$(date -u +%%Y%%m%%dT%%H%%M%%SZ)"'

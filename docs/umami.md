@@ -4,7 +4,8 @@ Umami provides blog analytics at `https://stats.grattafiori.dev`.
 The dashboard requires a login. The public `/api/send` endpoint accepts page views.
 The deployment pins Umami 3.4.1 and PostgreSQL 18.6.
 PostgreSQL does not publish a host port.
-The application also listens on `127.0.0.1:3031` for local administration.
+The application and PostgreSQL run in the K3s namespace `umami`.
+Caddy forwards requests to `172.18.0.1:30082`.
 
 ## Data collection
 
@@ -54,14 +55,16 @@ The script explicitly disables recording and heatmaps for that website.
 From `/home/rossgrat/repos/network` on potatoserver, run:
 
 ```sh
-docker compose -p umami -f umami/docker-compose.yml ps
-docker compose -p umami -f umami/docker-compose.yml logs --tail=100
+K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml get pods -n umami
+K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml logs -n umami deployment/umami --tail=100
 bash umami/backup.sh /home/rossgrat/backups/umami/manual
 ```
 
 Backups contain the PostgreSQL database and application secrets.
-Keep them private and copy them to separate storage.
-The `umami_postgres_data` volume holds the live database.
+Keep them private on potatoserver. Do not copy them to the Mac or another server.
+The claim `umami/data-postgres-0` holds the live database in K3s.
+The stopped Docker database and `umami_postgres_data` volume remain available for recovery.
+Each manual backup requires a new directory. It saves the active database, deployment secrets, and saved HTTP credentials.
 The memory limits are 512 MiB for Umami and 256 MiB for PostgreSQL.
 
 ## GoatCounter history

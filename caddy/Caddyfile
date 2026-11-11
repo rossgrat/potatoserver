@@ -1,12 +1,19 @@
+http://cms.grattafiori.dev {
+	reverse_proxy 172.18.0.1:30083 {
+		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
+		header_up X-Forwarded-Proto https
+	}
+}
+
 http://stats.grattafiori.dev {
-	reverse_proxy umami:3000 {
+	reverse_proxy 172.18.0.1:30082 {
 		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
 		header_up X-Forwarded-Proto https
 	}
 }
 
 rss.grattafiori.dev {
-	reverse_proxy miniflux:8080
+	reverse_proxy 172.18.0.1:30081
 
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}

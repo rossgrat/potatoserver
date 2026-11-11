@@ -22,3 +22,4 @@ caddy/logs/
 !pages-cms/.env.example
 !umami/.env.example
 caddy/media/
+/state/

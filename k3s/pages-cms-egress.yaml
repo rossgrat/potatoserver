@@ -1,0 +1,14 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: github
+  namespace: pages-cms
+spec:
+  podSelector:
+    matchLabels:
+      app: pages-cms
+  policyTypes: [Egress]
+  egress:
+    - ports:
+        - protocol: TCP
+          port: 443

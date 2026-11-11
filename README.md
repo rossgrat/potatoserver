@@ -63,6 +63,7 @@ make deploy    # Deploy to server (git pull + restart)
 
 ## Docs
 
+- [K3s migration](docs/k3s-migration.md): Recovery procedures, verification gates, and server-local backups
 - [Pages CMS](docs/pages-cms.md): Blog editing, deployment, and backups
 - [Deployment overrides](docs/deployment-overrides.md): Existing application versions and database mounts
 
