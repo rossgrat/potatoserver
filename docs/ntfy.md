@@ -1,46 +1,50 @@
 # ntfy
 
-Self-hosted push notification server. Runs on `caddy-network` behind Caddy, accessible at `https://alerts.grattafiori.dev`. Uses the ntfy.sh upstream relay for iOS push delivery via APNs.
+ntfy runs in the K3s namespace `ntfy` at `https://alerts.grattafiori.dev`.
+Caddy forwards requests to `172.18.0.1:30086`.
+The ntfy.sh relay provides iOS push delivery through APNs.
 
-## Architecture
+On potatoserver, define this helper for the commands below:
 
-```
-Phone (ntfy app) ← APNs ← ntfy.sh relay ← ntfy server (caddy-network)
-                                                ↑
-                                          services (e.g. stock-checker)
+```bash
+ntfyctl() {
+  K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl \
+    --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
+    exec -it -n ntfy deployment/ntfy -- ntfy "$@"
+}
 ```
 
 ## Auth
 
-Default access is `deny-all`. All users and tokens are stored in `/var/lib/ntfy/auth.db` (persisted via `ntfy-auth` Docker volume).
+Default access is `deny-all`. All users and tokens are stored in `/var/lib/ntfy/auth.db` on the retained K3s claim `ntfy/auth`.
 
 ### User management
 
 ```bash
 # Add a user
-docker exec -it ntfy ntfy user add <username>
+ntfyctl user add <username>
 
 # Add an admin user
-docker exec -it ntfy ntfy user add --role=admin <username>
+ntfyctl user add --role=admin <username>
 
 # Delete a user
-docker exec -it ntfy ntfy user del <username>
+ntfyctl user del <username>
 
 # List users
-docker exec -it ntfy ntfy user list
+ntfyctl user list
 ```
 
 ### Access control
 
 ```bash
 # Grant a user read-write access to a topic
-docker exec -it ntfy ntfy access <username> <topic> read-write
+ntfyctl access <username> <topic> read-write
 
 # Grant read-only access
-docker exec -it ntfy ntfy access <username> <topic> read-only
+ntfyctl access <username> <topic> read-only
 
 # Remove access
-docker exec -it ntfy ntfy access <username> <topic> reset
+ntfyctl access <username> <topic> reset
 ```
 
 ### Tokens
@@ -49,13 +53,13 @@ Services authenticate with bearer tokens instead of username/password.
 
 ```bash
 # Generate a token for a user
-docker exec -it ntfy ntfy token add <username>
+ntfyctl token add <username>
 
 # List tokens
-docker exec -it ntfy ntfy token list
+ntfyctl token list
 
 # Remove a token
-docker exec -it ntfy ntfy token remove <token>
+ntfyctl token remove <token>
 ```
 
 ## Publishing
@@ -82,3 +86,14 @@ Priority levels: 1 (min), 2 (low), 3 (default), 4 (high), 5 (urgent — bypasses
 3. Topic: `<topic>`
 4. Server: `https://alerts.grattafiori.dev`
 5. Enter username and password when prompted
+
+## Recovery
+
+Nightly backups use SQLite's online backup API for the active authentication database.
+The backups also contain the cache volume and K3s declarations.
+All backups stay on potatoserver. The original Docker volumes remain available for recovery.
+Message history remains in memory because the deployment does not set a persistent message cache.
+Isolated publication, subscription, and pod replacement tests passed during migration.
+Delivery to a physical phone remains untested after the move.
+
+See [the migration runbook](k3s-migration.md) and [ntfy configuration](https://docs.ntfy.sh/config/).

@@ -51,7 +51,7 @@ http://media.grattafiori.dev {
 }
 
 http://alerts.grattafiori.dev {
-	reverse_proxy ntfy:80
+	reverse_proxy 172.18.0.1:30086
 
 	header {
 		X-Frame-Options "SAMEORIGIN"
@@ -71,7 +71,7 @@ http://alerts.grattafiori.dev {
 }
 
 http://jobs.grattafiori.dev {
-	reverse_proxy job-board-api:8080
+	reverse_proxy 172.18.0.1:30085
 
 	header {
 		X-Frame-Options "SAMEORIGIN"
@@ -121,7 +121,7 @@ grafana.grattafiori.dev {
 }
 
 http://wubzduh.grattafiori.dev {
-	reverse_proxy wubzduh:8080
+	reverse_proxy 172.18.0.1:30084
 
 	header {
 		X-Frame-Options "SAMEORIGIN"

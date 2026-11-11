@@ -4,6 +4,8 @@ services:
     container_name: lgtm
     networks:
       - caddy-network
+    ports:
+      - "172.18.0.1:4317:4317"
     volumes:
       - lgtm-data:/data
       - ./provisioning/dashboards:/provisioning/dashboards

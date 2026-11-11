@@ -29,7 +29,7 @@ for container in miniflux-postgres-1 job-board-postgres wubzduh-postgres-1 umami
   bash "$script_dir/backup-database.sh" "$container" "$backup_dir/$container"
 done
 
-for namespace in miniflux umami pages-cms wubzduh job-board; do
+for namespace in miniflux umami pages-cms wubzduh job-board ntfy; do
 if [[ $(bash "$script_dir/runtime-for.sh" "$namespace" /home/rossgrat/repos/network/deployments.conf) == k3s ]]; then
   K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
     get deployments,statefulsets,services,persistentvolumeclaims,networkpolicies,configmaps,secrets -n "$namespace" -o yaml \
@@ -58,9 +58,19 @@ done
     ./*/image.txt ./*/connection.txt ./*/source-fingerprint.txt > DATABASE_SHA256SUMS
 )
 helper_image=$(cat "$backup_dir/miniflux-postgres-1/image.txt")
+if [[ $(bash "$script_dir/runtime-for.sh" ntfy /home/rossgrat/repos/network/deployments.conf) == k3s && ! -f "$backup_dir/ntfy-auth.tar.gz" ]]; then
+  bash "$script_dir/backup-ntfy.sh" "$backup_dir"
+fi
 for entry in caddy:/data:caddy-data caddy:/config:caddy-config ntfy:/var/lib/ntfy:ntfy-auth ntfy:/var/cache/ntfy:ntfy-cache lgtm:/data:lgtm-data wubzduh:/var/log/wubzduh:wubzduh-logs; do
   IFS=: read -r container mount name <<< "$entry"
   if [[ -f "$backup_dir/$name.tar.gz" ]]; then gzip -t "$backup_dir/$name.tar.gz"; continue; fi
+  if [[ "$container" == wubzduh && $(bash "$script_dir/runtime-for.sh" wubzduh /home/rossgrat/repos/network/deployments.conf) == k3s ]]; then
+    K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
+      exec -n wubzduh deployment/wubzduh -- tar -C "$mount" -cf - . > "$backup_dir/$name.tar"
+    gzip -1 "$backup_dir/$name.tar"
+    printf 'Volume backup: %s (k3s)\n' "$name"
+    continue
+  fi
   paused=$container
   docker pause "$container" >/dev/null
   touch "$backup_dir/$name.tar"

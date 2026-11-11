@@ -2,7 +2,7 @@ SERVER = potatoserver
 REMOTE_DIR = ~/repos/network
 include deployments.conf
 
-.PHONY: up down restart logs deploy k3s-apply k3s-diff
+.PHONY: up down restart logs deploy k3s-apply k3s-diff k3s-stop k3s-logs
 
 up:
 	docker network inspect caddy-network >/dev/null 2>&1 || docker network create --driver bridge --subnet 172.18.0.0/16 --gateway 172.18.0.1 caddy-network
@@ -22,6 +22,7 @@ endif
 	$(MAKE) k3s-apply
 
 down:
+	$(MAKE) k3s-stop
 ifneq ($(UMAMI_RUNTIME),k3s)
 	cd umami && docker compose down
 endif
@@ -39,7 +40,7 @@ endif
 restart: down up
 
 logs:
-	docker compose -f caddy/docker-compose.yml -f ntfy/docker-compose.yml -f miniflux/docker-compose.yml -f lgtm/docker-compose.yml -f umami/docker-compose.yml logs -f
+	docker logs --tail=100 -f caddy
 
 deploy:
 	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull && make up"
@@ -49,6 +50,13 @@ k3s-apply:
 
 k3s-diff:
 	bash ops/apply-k3s.sh --diff
+
+k3s-stop:
+	bash ops/stop-k3s.sh
+
+k3s-logs:
+	@test -n "$(SERVICE)" || { echo 'Pass SERVICE, for example SERVICE=job-board.' >&2; exit 2; }
+	K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml logs -n $(SERVICE) -l app=$(SERVICE) --all-containers=true --tail=100 --prefix -f
 
 .PHONY: cms-build cms-up cms-logs cms-deploy
 

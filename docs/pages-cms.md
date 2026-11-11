@@ -1,14 +1,15 @@
 # Pages CMS
 
 Pages CMS edits the blog repository at `https://cms.grattafiori.dev`.
-The existing Cloudflare Tunnel forwards this hostname to `127.0.0.1:3030` on potatoserver.
+Cloudflare Tunnel forwards this hostname to Caddy at `127.0.0.1:80` on potatoserver.
+Caddy forwards CMS requests to the K3s NodePort at `172.18.0.1:30083`.
 Only the GitHub account `rossgrat` can sign in to this CMS.
 The authentication callback accepts only GitHub user ID `69823943`, as set by `ALLOWED_GITHUB_USER_ID`.
 A missing owner ID denies sign-in. Email sign-in is disabled.
 GitHub repository permissions still control edits.
 The GitHub App is installed only on `rossgrat/rossgrat.github.io`.
 
-The application and its PostgreSQL database use separate Docker containers.
+The application and PostgreSQL run in the K3s namespace `pages-cms`.
 PostgreSQL stores login sessions, credentials, and cached repository data.
 GitHub retains the authoritative posts and images.
 The database does not publish a host port.
@@ -23,7 +24,8 @@ It omits the component generator and its Zod 3 dependency.
 Every image build tests that other GitHub identities are rejected and email authentication is disabled.
 Repository requests use [Better Auth token renewal](https://better-auth.com/docs/concepts/oauth#get-access-token) when the GitHub access token expires.
 The build also tests this renewal path, post forms, configuration errors, and both dependency security regressions.
-Database migrations run in a separate container before the application starts.
+The original Docker bootstrap ran database migrations in a separate container.
+Review schema changes before updating the K3s application image.
 
 ## Security boundary
 
@@ -35,7 +37,7 @@ Session cookies use Secure, HttpOnly, and SameSite=Lax.
 These attributes restrict cookie transport, script access, and cross-site use.
 The app rejects cross-site authentication requests and invalid webhook signatures.
 The application runs as the non-root Node user.
-Its host port binds only to the local loopback address.
+The NodePort accepts traffic on the configured loopback, Tailscale, and Docker bridge addresses.
 
 A stolen GitHub account or CMS session can let an attacker act as you.
 A compromised server or application can also expose the credentials stored there.
@@ -56,51 +58,20 @@ The owner token read the repository but received 403 from the repository adminis
 Unauthenticated content requests returned 401, and email-code login endpoints returned 404.
 Password login was disabled in the deployed authentication configuration.
 
-## Initial setup
+## Recovery
 
-Install [Docker Buildx 0.38.2](https://github.com/docker/buildx/releases/tag/v0.38.2) on potatoserver before building the image.
-The installed plugin lives at `/home/rossgrat/.docker/cli-plugins/docker-buildx`.
-
-On the laptop, generate `pages-cms/.env` with a database password, a session secret, and a 32-byte base64 encryption key.
-Use `pages-cms/.env.example` for the variable names.
-Keep the file out of Git and set its permissions to `600`.
-
-From the infrastructure repository, run:
-
-```sh
-./pages-cms/setup-github-app.sh
-```
-
-Open the printed localhost URL in the same laptop browser.
-Create the app, then install it only on the blog repository.
-The helper saves credentials directly to `.env`.
-It corrects the upstream helper's webhook-secret handling and email permission name for GitHub's registration form.
-
-Copy `.env` to `/home/rossgrat/repos/network/pages-cms/.env` on potatoserver through SSH.
-Keep its permissions at `600`.
-From `/home/rossgrat/repos/network` on potatoserver, run:
-
-```sh
-make cms-build cms-up
-```
-
-After the application responds locally, add the DNS record and tunnel route on potatoserver:
-
-```sh
-cloudflared tunnel route dns potatoserver cms.grattafiori.dev
-sudo ./pages-cms/install-tunnel-route.sh
-```
-
-The route script saves the old tunnel configuration and restores it if the tunnel fails to become ready.
-GitHub sends signed notifications to `/api/webhook/github`.
-The handler rejects invalid signatures.
+Restore the database, application Secret, and imported image from the backups on potatoserver.
+Keep all credentials on the server. Do not generate a private copy on the Mac.
+Use the [migration runbook](k3s-migration.md) for the declared runtime and recovery gates.
+The existing GitHub App and tunnel route remain in use.
 
 ## Operations
 
-From the infrastructure repository on the laptop, run `make cms-deploy` to back up and update only the CMS.
 On potatoserver, run `make cms-logs` to read application logs.
-The `cms-up` target runs migrations before starting the application.
-Do not use the general `make deploy` target for CMS updates.
+The `cms-up` target applies the pinned K3s declaration.
+A rebuilt image requires import into K3s before deployment. The target rejects a different Docker image ID.
+The deployment does not run schema migrations automatically.
+Do not use `make cms-deploy` for an image update until its import and database migration steps are prepared.
 
 On potatoserver, create a backup outside the repository:
 
@@ -108,14 +79,14 @@ On potatoserver, create a backup outside the repository:
 ./pages-cms/backup.sh /home/rossgrat/backups/pages-cms/manual
 ```
 
-Each backup contains `database.dump` and `app.env`.
-Keep both files private because they include authentication data.
-The encryption key in `app.env` is required to read stored encrypted tokens.
+Each K3s backup contains a database dump, comparison evidence, and `resources.yaml`.
+The resource archive includes application credentials and the token encryption key.
+Keep every backup file private on potatoserver.
 
 Before an upgrade, retain the previous image and its database backup.
 If a migration changes the database, restore the matching backup before starting the previous image.
 Restore into a separate database first to test the backup.
-Never remove the `pages-cms_postgres_data` volume during routine updates.
+Retain the K3s claim `pages-cms/data-postgres-0` and the original Docker volume during recovery.
 
 The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
 The application source is pinned to Pages CMS 2.1.8 with patches in `pages-cms/patch-auth.mjs` and `pages-cms/patch-validation.mjs`.

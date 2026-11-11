@@ -1,7 +1,9 @@
 # Deployment overrides
 
 These files preserve the service versions and database mounts deployed on potatoserver.
-The applications live outside this infrastructure repository.
+The source repositories live separately. Both applications now run on K3s.
+These Compose overrides remain available for recovery of the original Docker deployment.
+Do not use Compose to start a second worker or a stale database after the handoff.
 
 Run Compose commands from `/home/rossgrat/repos/network` on potatoserver:
 

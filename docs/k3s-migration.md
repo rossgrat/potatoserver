@@ -25,7 +25,9 @@ The first backup after the move saved the Miniflux database from K3s.
 That backup passed its checksums. All five database restorations passed.
 Umami now serves its existing public URL from K3s.
 Its first complete backup passed checksum tests and isolated restorations of both K3s databases.
-The CMS database and existing owner session passed their preparation tests. The CMS application remains on Docker.
+CMS now serves its public URL from K3s with its existing owner session and GitHub repository access.
+Wubzduh, Job Board, and ntfy also serve their existing URLs from K3s.
+Their original Docker containers remain stopped with their volumes preserved.
 Clock-based observation periods are follow-up checks. Functional failures still stop dependent changes.
 
 ## Milestones
@@ -238,7 +240,7 @@ Its public checker passed temporary-error recovery and permanent-failure tests.
 The revised script reuses the imported image when its identity matches.
 The preparation retry passed at 21:41 UTC on November 11.
 The first public probe returned HTTP 530. The second probe returned HTTP 200.
-The public CMS route now passes through Caddy to the Docker application.
+The preparation routed CMS through Caddy to the Docker application before the final transfer.
 Protected host backup and isolated cluster recovery passed after that change.
 
 The K3s image store and tunnel configuration require root access.
@@ -257,9 +259,8 @@ All archives remain on potatoserver.
 
 The private K3s application passed its owner-session and database replacement tests.
 Its database backup restored into isolation with matching data.
-The public application remains on Docker until the tunnel preparation and final cutover pass.
-The later cutover requires a new database snapshot after stopping the Docker application.
-The application backup authority remains Docker during preparation.
+The final transfer used a new database snapshot after stopping the Docker application.
+The application backup authority stayed on Docker during preparation.
 
 CMS now serves its public URL from K3s.
 The final transfer took 24 seconds and preserved the source data, owner session, and accessible GitHub repositories.
@@ -283,12 +284,76 @@ Apply the declared configuration:
 make k3s-apply
 ```
 
-The comparison passed without differences for Miniflux, Umami, and CMS after their transfers.
+The comparison passed without differences after each completed transfer.
 Migration scripts use live commands for temporary pauses and data restoration.
 Completed transfers update the versioned runtime configuration and application manifests.
 
 Each remaining transfer uses a fresh backup of its own data and its application-specific acceptance tests.
 Full nightly backups remain enabled. Repeat the full backup verification after the remaining transfers finish.
+
+## Wubzduh, Job Board, and ntfy
+
+Wubzduh uses NodePort `30084`. Job Board uses `30085`. ntfy uses `30086`.
+Each database transfer compared table contents, schema, indexes, and sequence positions before starting the application.
+Database replacement tests passed for Wubzduh and Job Board.
+Wubzduh also retained its original log contents in a separate persistent volume.
+
+The Wubzduh feed, artist page, and static assets passed private and public requests.
+Spotify token acquisition passed. Spotify album reads returned HTTP 403 from K3s and the original Docker network.
+The original Docker logs also contain HTTP 403 errors. The music fetch behavior remains a known application issue.
+The migration does not establish successful scheduled music updates.
+
+Job Board retained its existing session, dashboard, browse page, company page, and metrics page.
+Anonymous requests and invalid sessions were rejected.
+The original worker stopped before the K3s worker started.
+LGTM accepts OTLP on `172.18.0.1:4317`. The API and worker retain their original service names.
+Queries found new API and worker logs after their K3s pods started.
+The K3s worker discovered a new job and completed a processing task after the handoff.
+
+ntfy retained its user database, access rules, token, and cache volume contents.
+The restored files matched their source hashes. SQLite integrity and foreign key tests passed.
+An isolated test identity published and received a synthetic notification with external traffic blocked.
+The application retained authentication after pod replacement.
+The public endpoint accepted the existing token and rejected anonymous requests and invalid tokens.
+These tests do not establish notification delivery to a physical phone.
+The existing configuration stores message history in memory. The migration preserves that configuration.
+
+Nightly backups read the five active databases from K3s.
+They archive Wubzduh logs from its K3s volume and use SQLite's online backup API for ntfy.
+Caddy and LGTM volume backups continue to use Docker.
+All backup files remain on potatoserver.
+
+The older Docker deployment commands in the Wubzduh and Job Board repositories now require the Docker runtime.
+The guard rejects those commands after a service moves to K3s.
+Update the pinned infrastructure manifests before deploying a new application version.
+Review database migrations separately before applying an image that changes the schema.
+
+After an application accepts writes on K3s, preserve its current data before reverting its route.
+The original Docker database contains the state from the handoff, not later writes.
+Do not restart the old worker alongside the K3s worker.
+
+Reboot recovery and seven successful nightly backups remain pending until those events occur.
+Functional tests do not replace those observations.
+
+## Final protected checkpoint
+
+The final script requires root access because it reads the K3s encryption material and protected host credentials.
+It requires a complete application backup and successful final verification first.
+It saves the current host state, Git history, and migration tools on potatoserver.
+It also restores the current cluster in isolation and compares application credentials with the live cluster.
+It does not reboot the server.
+
+From the Mac, run:
+
+```sh
+ssh -t -o HostName=100.108.26.48 -o HostKeyAlias=potatoserver potatoserver \
+  'sudo bash /home/rossgrat/k3s-migration-tools/ops/finalize-k3s.sh'
+```
+
+After that checkpoint passes, arrange physical access before the reboot test.
+The earlier boot history includes a manual power cycle. Remote SSH alone does not provide recovery from that failure.
+After the reboot, repeat `ops/verify-final.sh` with a new evidence directory and test authenticated application access.
+Record the uptime and both backup timers before marking reboot recovery complete.
 
 ## Protected host state
 
@@ -329,3 +394,4 @@ Backups remain in dated directories. Automatic deletion is not configured.
 - [Umami page-view collection](https://docs.umami.is/docs/api/sending-stats)
 - [K3s manual image import](https://docs.k3s.io/installation/airgap)
 - [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy)
+- [ntfy listening addresses, authentication, and message history](https://docs.ntfy.sh/config/)

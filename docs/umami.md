@@ -24,7 +24,10 @@ Make sure that the message says tracking is disabled.
 Repeat this on each browser and device that you use.
 Opening the URL again enables tracking in that browser.
 
-## Initial setup
+## Original Docker bootstrap
+
+The following steps describe the original setup. Do not run them against the active K3s deployment.
+Restore the current credentials and database from the server-local backups for recovery.
 
 On potatoserver, create `umami/.env` from `.env.example` in the deployment checkout.
 Generate each value with `openssl rand -hex 32`.
