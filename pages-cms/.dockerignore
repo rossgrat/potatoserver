@@ -5,3 +5,6 @@
 !sign-in.tsx
 !owner-access.test.ts
 !token-refresh.test.mjs
+!package.json
+!patch-validation.mjs
+!hardening.test.mjs

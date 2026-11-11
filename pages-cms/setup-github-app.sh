@@ -15,6 +15,7 @@ for (const [before, after] of [
   ['  const webhookSecret = randomBytes(32).toString("base64url");\n', ''],
   ['      secret: webhookSecret,\n', ''],
   ['email_addresses: "read",', 'emails: "read",'],
+  ['      administration: "write",\n', ''],
   ['GITHUB_APP_WEBHOOK_SECRET: webhookSecret,', 'GITHUB_APP_WEBHOOK_SECRET: converted.webhook_secret,'],
 ]) {
   if (!source.includes(before)) throw new Error('Unexpected upstream helper source');

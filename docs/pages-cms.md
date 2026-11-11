@@ -17,10 +17,11 @@ The image pins Pages CMS 2.1.8, Node 24.22.2, and their source or image digests.
 PostgreSQL uses version 18.6 with a pinned digest.
 The checked-in lockfile pins patched dependencies, including Next.js 16.4.6, Better Auth 1.7.20, and Tiptap 3.33.1.
 The build uses Docker Buildx 0.38.2 and retains an npm download cache.
-The `r3` image suffix identifies the owner-only authentication and token renewal patches.
+The `r4` image adds Zod 4.6.7, Nodemailer 10.5.0, and compatible form validation.
+The deployment omits the unused component generator that depended on Zod 3.
 Every image build tests that other GitHub identities are rejected and email authentication is disabled.
 Repository requests use [Better Auth token renewal](https://better-auth.com/docs/concepts/oauth#get-access-token) when the GitHub access token expires.
-The build also tests this renewal path.
+The build also tests this renewal path, post forms, configuration errors, and both dependency security regressions.
 Database migrations run in a separate container before the application starts.
 
 ## Security boundary
@@ -41,13 +42,14 @@ Protect your GitHub account with a [passkey or two-factor authentication](https:
 The owner restriction does not guarantee that the application has no vulnerabilities.
 
 The GitHub App has access only to the blog repository.
-Its upstream manifest grants write access to Contents, Actions, and Administration.
-Administration access increases the impact of a stolen app credential.
-Review that permission before expanding the installation to another repository.
+It grants write access to Contents and Actions, plus read access to checks, statuses, and metadata.
+Administration permission is disabled in both the app registration and installation.
+The setup helper also removes that permission from new registrations.
+Creating repositories from CMS templates is outside this deployment.
 GitHub documents [how to change app permissions](https://docs.github.com/en/apps/maintaining-github-apps/modifying-a-github-app-registration#changing-the-permissions-of-a-github-app).
 
 The November 11, 2026 review found one owner account, one active owner session, and no collaborators or invitations.
-All seven authentication and token tests passed.
+All thirteen authentication, token, validation, and dependency security tests passed.
 Unauthenticated content requests returned 401, and email-code login endpoints returned 404.
 Password login was disabled in the deployed authentication configuration.
 
@@ -113,12 +115,13 @@ Restore into a separate database first to test the backup.
 Never remove the `pages-cms_postgres_data` volume during routine updates.
 
 The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
-The application source is pinned to Pages CMS 2.1.8 with the local authentication patch in `pages-cms/patch-auth.mjs`.
-The November 11, 2026 production audit reported zero critical, two high, four moderate, and four low findings.
-The high findings affect [Zod collection validation](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) and [Nodemailer email handling](https://github.com/advisories/GHSA-p6gq-j5cr-w38f).
-The file API requires authentication before Zod validation, and this deployment does not configure email delivery.
-These restrictions reduce exposure but do not resolve the vulnerable dependencies.
-Review the findings when updating the lockfile or enabling email features.
+The application source is pinned to Pages CMS 2.1.8 with patches in `pages-cms/patch-auth.mjs` and `pages-cms/patch-validation.mjs`.
+The hardened dependency set resolves the [Zod collection validation](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) and [Nodemailer email handling](https://github.com/advisories/GHSA-p6gq-j5cr-w38f) findings.
+Regression tests reject oversized collections before validating every element and block file reads through raw email messages.
+The November 11, 2026 production audit reports zero critical, zero high, four moderate, and four low findings.
+The remaining findings involve an esbuild development-server issue and email-rendering dependencies.
+This deployment does not run the esbuild development server or configure email delivery.
+Review these findings when updating dependencies or enabling email features.
 
 See the upstream [self-hosting guide](https://pagescms.org/docs/guides/installing/self-host/),
 [database guide](https://pagescms.org/docs/development/database/), and

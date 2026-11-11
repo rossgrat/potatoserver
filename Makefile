@@ -29,7 +29,7 @@ deploy:
 .PHONY: cms-build cms-up cms-logs cms-deploy
 
 cms-build:
-	docker build -t potatoserver-pages-cms:2.1.8-r3-node24.22.2 pages-cms
+	docker build -t potatoserver-pages-cms:2.1.8-r4-node24.22.2 pages-cms
 
 cms-up:
 	cd pages-cms && docker compose up -d --no-build --wait app
