@@ -51,7 +51,7 @@ The script explicitly disables recording and heatmaps for that website.
 
 ## Operations
 
-From the deployment checkout on potatoserver, run:
+From `/home/rossgrat/repos/network` on potatoserver, run:
 
 ```sh
 docker compose -p umami -f umami/docker-compose.yml ps
@@ -67,9 +67,9 @@ The memory limits are 512 MiB for Umami and 256 MiB for PostgreSQL.
 ## GoatCounter history
 
 Umami starts with fresh counts. GoatCounter history is not imported.
-The stopped GoatCounter container and its SQLite volume remain available for rollback.
-The migration backup lives under `/home/rossgrat/backups/goatcounter/umami-20261111`.
-See [GoatCounter](goatcounter.md) for its database backup commands.
+The retired GoatCounter container, image, volume, and deployment files are removed.
+The final SQLite snapshot remains at `/home/rossgrat/backups/goatcounter/umami-20261111/goatcounter-final.sqlite3`.
+The snapshot passed SQLite's integrity check before the old volume was removed.
 
 ## Sources
 

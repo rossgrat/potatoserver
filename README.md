@@ -71,7 +71,6 @@ make deploy    # Deploy to server (git pull + restart)
 - [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 - [Umami](docs/umami.md): Blog analytics, privacy controls, and backups
-- [GoatCounter](docs/goatcounter.md): Retained history and rollback
 
 ## Security
 
