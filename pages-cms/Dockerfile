@@ -6,6 +6,7 @@ RUN echo '62f2e59fac6eb061162f858e9239c697620e1ed0183c2324b0f2a14137f43684  /tmp
     && tar -xzf /tmp/pagescms.tar.gz --strip-components=1 -C /app \
     && rm /tmp/pagescms.tar.gz
 COPY package.json package-lock.json ./
+COPY vendor/ ./vendor/
 RUN --mount=type=cache,id=pages-cms-npm,target=/root/.npm npm ci --no-audit --no-fund
 COPY patch-auth.mjs patch-validation.mjs sign-in.tsx owner-access.test.ts token-refresh.test.mjs hardening.test.mjs /tmp/pages-cms/
 RUN node /tmp/pages-cms/patch-auth.mjs \

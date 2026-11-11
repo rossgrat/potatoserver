@@ -14,6 +14,7 @@ function replace(file, before, after) {
   fs.writeFileSync(file, source.replace(before, after));
 }
 
+replace("app/globals.css", '@import "shadcn/tailwind.css";', '@import "../vendor/shadcn-tailwind.css";');
 replace("lib/config.ts", "zodError.errors.forEach", "zodError.issues.forEach");
 replace("lib/config.ts", "error.unionErrors.forEach((unionError: any) => {\n        unionError.issues.forEach", "error.errors.forEach((issues: any[]) => {\n        issues.forEach");
 replace("lib/config.ts", "error.unionErrors.length", "error.errors.length");

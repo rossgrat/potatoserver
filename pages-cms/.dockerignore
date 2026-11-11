@@ -8,3 +8,6 @@
 !package.json
 !patch-validation.mjs
 !hardening.test.mjs
+!vendor/
+!vendor/shadcn-tailwind.css
+!vendor/shadcn-LICENSE.md

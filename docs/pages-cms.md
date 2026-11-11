@@ -18,7 +18,8 @@ PostgreSQL uses version 18.6 with a pinned digest.
 The checked-in lockfile pins patched dependencies, including Next.js 16.4.6, Better Auth 1.7.20, and Tiptap 3.33.1.
 The build uses Docker Buildx 0.38.2 and retains an npm download cache.
 The `r4` image adds Zod 4.6.7, Nodemailer 10.5.0, and compatible form validation.
-The deployment omits the unused component generator that depended on Zod 3.
+The deployment retains the stylesheet from [shadcn 3.8.5](https://github.com/shadcn-ui/ui/tree/shadcn%403.8.5) in `pages-cms/vendor/`.
+It omits the component generator and its Zod 3 dependency.
 Every image build tests that other GitHub identities are rejected and email authentication is disabled.
 Repository requests use [Better Auth token renewal](https://better-auth.com/docs/concepts/oauth#get-access-token) when the GitHub access token expires.
 The build also tests this renewal path, post forms, configuration errors, and both dependency security regressions.
