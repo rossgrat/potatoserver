@@ -1,6 +1,8 @@
 # GoatCounter
 
-GoatCounter 2.7.0 collects basic traffic statistics for `ross.grattafiori.dev`.
+GoatCounter 2.7.0 previously collected traffic statistics for `ross.grattafiori.dev`.
+It is stopped after the [Umami migration](umami.md). Its SQLite volume remains available for history and rollback.
+The instructions below describe the previous deployment.
 The container image is pinned by version and digest.
 The dashboard at `https://stats.grattafiori.dev` requires an administrator login.
 The `/count` endpoint accepts public tracking requests.
