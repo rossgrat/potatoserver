@@ -18,7 +18,7 @@ services:
       retries: 5
 
   migrate:
-    image: potatoserver-pages-cms:2.1.8-r2-node24.22.2
+    image: potatoserver-pages-cms:2.1.8-r3-node24.22.2
     build: .
     command: ["npm", "run", "db:migrate"]
     env_file: .env
@@ -29,7 +29,7 @@ services:
       - database
 
   app:
-    image: potatoserver-pages-cms:2.1.8-r2-node24.22.2
+    image: potatoserver-pages-cms:2.1.8-r3-node24.22.2
     build: .
     restart: unless-stopped
     env_file: .env
