@@ -26,7 +26,7 @@ Internet → Cloudflare Edge (DDoS/WAF/TLS) → Tunnel (QUIC) → cloudflared �
 | `alerts` | ntfy notifications (via tunnel) | Proxied |
 | `jobs` | Job Board (via tunnel) | Proxied |
 | `wubzduh` | Music release feed (via tunnel) | Proxied |
-| `stats` | GoatCounter dashboard and collection (via tunnel) | Proxied |
+| `stats` | Umami dashboard and collection (via tunnel) | Proxied |
 | `@` (MX/TXT) | ProtonMail email | DNS-only |
 
 ## Setup
@@ -73,7 +73,7 @@ ingress:
 Miniflux and Grafana use private Tailscale access. Their DNS-only A records point to `100.108.26.48`.
 Keep both hostnames out of the tunnel configuration. See [tailscale.md](tailscale.md).
 
-GoatCounter remains on the tunnel because public visitors send analytics to its `/count` endpoint.
+Umami remains on the tunnel because public visitors send page views to its `/api/send` endpoint.
 Pages CMS uses the same tunnel and forwards directly to its loopback port, without Caddy.
 See [Pages CMS](pages-cms.md) for its installation script and GitHub sign-in.
 

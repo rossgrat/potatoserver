@@ -1,5 +1,5 @@
 http://stats.grattafiori.dev {
-	reverse_proxy goatcounter:8080 {
+	reverse_proxy umami:3000 {
 		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
 		header_up X-Forwarded-Proto https
 	}

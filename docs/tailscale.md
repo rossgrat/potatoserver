@@ -8,7 +8,7 @@ Miniflux and Grafana use the tailnet, the private Tailscale network. Both servic
 | Grafana | `https://grafana.grattafiori.dev` | `lgtm:3000` |
 
 Their DNS-only A records point to `100.108.26.48`, the Tailscale address of potatoserver.
-Neither hostname has a Cloudflare Tunnel route. GoatCounter remains public because its `/count` endpoint receives analytics from website visitors.
+Neither hostname has a Cloudflare Tunnel route. Umami remains public because its `/api/send` endpoint receives page views from website visitors.
 
 ## HTTPS
 
@@ -61,4 +61,4 @@ docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 ```
 
 Keep `rss.grattafiori.dev` and `grafana.grattafiori.dev` out of `/etc/cloudflared/config.yml`.
-Keep their DNS records unproxied. Public services still use the tunnel, including GoatCounter.
+Keep their DNS records unproxied. Public services still use the tunnel, including Umami.

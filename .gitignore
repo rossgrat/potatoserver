@@ -20,4 +20,5 @@ caddy/logs/
 *.backup
 
 !pages-cms/.env.example
+!umami/.env.example
 caddy/media/

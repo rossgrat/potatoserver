@@ -9,10 +9,10 @@ up:
 	cd ntfy && docker compose up -d
 	cd miniflux && docker compose up -d
 	cd lgtm && docker compose up -d
-	cd goatcounter && docker compose up -d
+	cd umami && docker compose up -d
 
 down:
-	cd goatcounter && docker compose down
+	cd umami && docker compose down
 	cd lgtm && docker compose down
 	cd caddy && docker compose down
 	cd ntfy && docker compose down
@@ -21,7 +21,7 @@ down:
 restart: down up
 
 logs:
-	docker compose -f caddy/docker-compose.yml -f ntfy/docker-compose.yml -f miniflux/docker-compose.yml -f lgtm/docker-compose.yml -f goatcounter/docker-compose.yml logs -f
+	docker compose -f caddy/docker-compose.yml -f ntfy/docker-compose.yml -f miniflux/docker-compose.yml -f lgtm/docker-compose.yml -f umami/docker-compose.yml logs -f
 
 deploy:
 	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull && make restart"

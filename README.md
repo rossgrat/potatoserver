@@ -8,7 +8,7 @@ Potatoserver provides public services through [Cloudflare Tunnel](docs/cloudflar
 |---|---|---|
 | Pages CMS | `cms.grattafiori.dev` | Blog editor with GitHub sign-in |
 | Miniflux | `rss.grattafiori.dev` | RSS reader, accessible through Tailscale |
-| GoatCounter | `stats.grattafiori.dev` | Blog analytics with a private dashboard |
+| Umami | `stats.grattafiori.dev` | Blog analytics with a dashboard that requires login |
 | Media | `media.grattafiori.dev` | Static media file server |
 | ntfy | `alerts.grattafiori.dev` | Push notification server |
 | wubzduh | `wubzduh.grattafiori.dev` | New music release feed |
@@ -24,7 +24,7 @@ Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) →
 ```
 
 Miniflux and Grafana use the host's Tailscale IP. Miniflux uses the same private HTTPS path as Grafana, with `miniflux:8080` as its destination.
-GoatCounter remains public so website visitors can send analytics to its `/count` endpoint.
+Umami remains public so website visitors can send page views to its `/api/send` endpoint.
 
 ## Setup
 
@@ -58,7 +58,7 @@ make deploy    # Deploy to server (git pull + restart)
 - `miniflux/docker-compose.yml` — Miniflux + PostgreSQL containers
 - `ntfy/docker-compose.yml` — ntfy notification server container
 - `ntfy/server.yml` — ntfy server config
-- `goatcounter/docker-compose.yml` — GoatCounter and its SQLite volume
+- `umami/docker-compose.yml`: Umami and its PostgreSQL database
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
@@ -70,7 +70,8 @@ make deploy    # Deploy to server (git pull + restart)
 - [Tailscale](docs/tailscale.md): Private access to Miniflux and Grafana
 - [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
-- [GoatCounter](docs/goatcounter.md) — Blog analytics, deployment, and backups
+- [Umami](docs/umami.md): Blog analytics, privacy controls, and backups
+- [GoatCounter](docs/goatcounter.md): Retained history and rollback
 
 ## Security
 
