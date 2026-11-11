@@ -51,6 +51,8 @@ GitHub documents [how to change app permissions](https://docs.github.com/en/apps
 
 The November 11, 2026 review found one owner account, one active owner session, and no collaborators or invitations.
 All thirteen authentication, token, validation, and dependency security tests passed.
+All eight existing posts passed form validation, including both drafts. All eighteen images remained accessible.
+The owner token read the repository but received 403 from the repository administration endpoint.
 Unauthenticated content requests returned 401, and email-code login endpoints returned 404.
 Password login was disabled in the deployed authentication configuration.
 
@@ -123,6 +125,7 @@ The November 11, 2026 production audit reports zero critical, zero high, four mo
 The remaining findings involve an esbuild development-server issue and email-rendering dependencies.
 This deployment does not run the esbuild development server or configure email delivery.
 Review these findings when updating dependencies or enabling email features.
+An audit that also includes development dependencies reports eleven moderate and four low findings, with no high or critical findings.
 
 See the upstream [self-hosting guide](https://pagescms.org/docs/guides/installing/self-host/),
 [database guide](https://pagescms.org/docs/development/database/), and
