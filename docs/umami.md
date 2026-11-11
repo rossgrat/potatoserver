@@ -9,7 +9,7 @@ The application also listens on `127.0.0.1:3031` for local administration.
 ## Data collection
 
 The blog sends one page view after the page loads, during browser idle time when available.
-It does not load a session recorder or enable heatmaps, performance measurements, custom events, or visitor IDs.
+It does not load a session recorder or enable heatmaps, performance measurements, custom events, or custom visitor IDs.
 Automatic tracking is disabled. The loader sends the page view explicitly without installing click or navigation listeners.
 The tracker omits URL queries and fragments.
 The application disables its own telemetry and external service calls.
