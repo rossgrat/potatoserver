@@ -2,7 +2,10 @@
 
 Pages CMS edits the blog repository at `https://cms.grattafiori.dev`.
 The existing Cloudflare Tunnel forwards this hostname to `127.0.0.1:3030` on potatoserver.
-Pages CMS requires GitHub sign-in and repository write access for editing.
+Only the GitHub account `rossgrat` can sign in to this CMS.
+The authentication callback accepts only GitHub user ID `69823943`, as set by `ALLOWED_GITHUB_USER_ID`.
+A missing owner ID denies sign-in. Email sign-in is disabled.
+GitHub repository permissions still control edits.
 The GitHub App is installed only on `rossgrat/rossgrat.github.io`.
 
 The application and its PostgreSQL database use separate Docker containers.
@@ -14,7 +17,8 @@ The image pins Pages CMS 2.1.8, Node 24.22.2, and their source or image digests.
 PostgreSQL uses version 18.6 with a pinned digest.
 The checked-in lockfile pins patched dependencies, including Next.js 16.4.6, Better Auth 1.7.20, and Tiptap 3.33.1.
 The build uses Docker Buildx 0.38.2 and retains an npm download cache.
-The `r1` image suffix identifies this dependency update.
+The `r2` image suffix identifies the owner-only authentication patch.
+Every image build tests that other GitHub identities are rejected and email authentication is disabled.
 Database migrations run in a separate container before the application starts.
 
 ## Initial setup
@@ -79,7 +83,7 @@ Restore into a separate database first to test the backup.
 Never remove the `pages-cms_postgres_data` volume during routine updates.
 
 The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
-The application source remains pinned to Pages CMS 2.1.8.
+The application source is pinned to Pages CMS 2.1.8 with the local authentication patch in `pages-cms/patch-auth.mjs`.
 The production audit still reports upstream Zod 3 and Nodemailer findings.
 The file API requires authentication before Zod validation, and this deployment does not configure email delivery.
 Review these findings when updating the lockfile or enabling email features.

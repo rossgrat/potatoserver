@@ -7,6 +7,9 @@ RUN echo '62f2e59fac6eb061162f858e9239c697620e1ed0183c2324b0f2a14137f43684  /tmp
     && rm /tmp/pagescms.tar.gz
 COPY package-lock.json ./package-lock.json
 RUN --mount=type=cache,id=pages-cms-npm,target=/root/.npm npm ci --no-audit --no-fund
+COPY patch-auth.mjs sign-in.tsx owner-access.test.ts /tmp/pages-cms/
+RUN node /tmp/pages-cms/patch-auth.mjs \
+    && node --import tsx --test scripts/owner-access.test.ts
 RUN BASE_URL=https://cms.grattafiori.dev \
     DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build \
     BETTER_AUTH_SECRET=build-only-placeholder-not-a-runtime-secret \

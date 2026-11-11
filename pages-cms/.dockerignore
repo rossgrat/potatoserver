@@ -1,3 +1,6 @@
 *
 !Dockerfile
 !package-lock.json
+!patch-auth.mjs
+!sign-in.tsx
+!owner-access.test.ts
