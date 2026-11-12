@@ -3,6 +3,20 @@
 Historical record from November 11, 2026. Commands below include retired paths and Docker resources.
 Use [operations](../operations.md) for current procedures.
 
+## Completion on November 12, 2026
+
+All eight services run on K3s, including Caddy and LGTM.
+The cleanup removed four Docker packages, their data, 14 firewall chains, two bridges, and both migration staging directories.
+It also archived and removed 52 obsolete repository files.
+Five database restores, ntfy authentication recovery, and isolated cluster recovery with 11 application secrets passed without Docker.
+All nine deployments and five databases remained healthy after the final K3s restart.
+Persistent storage identities stayed unchanged, and all seven service health URLs returned HTTP 200.
+The first scheduled cluster and application backups passed. Backups remain on potatoserver.
+Retirement evidence is in `/home/rossgrat/backups/k3s-retirement-20261112T140909Z`.
+The automatic OS reboot problem and pre-existing Spotify HTTP 403 responses remain separate follow-up work.
+
+The earlier checkpoints below describe the intermediate migration states.
+
 Migrate one application at a time after its recovery tests pass.
 Keep all backups on potatoserver. Do not copy private data to the Mac.
 Keep cloudflared, Tailscale, and Caddy outside K3s during the application migration.

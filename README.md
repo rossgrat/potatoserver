@@ -27,7 +27,8 @@ Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) →
 Miniflux and Grafana use the host's Tailscale IP.
 Miniflux, Umami, CMS, Wubzduh, Job Board, ntfy, Caddy, and LGTM run on K3s.
 Caddy exposes host ports 80 and 443 and routes requests through Kubernetes service DNS.
-Tailscale and Cloudflare Tunnel run as host services. Docker is disabled.
+Tailscale and Cloudflare Tunnel run as host services.
+The cleanup removed Docker packages, data, bridges, and migration staging directories.
 Umami remains public so website visitors can send page views to its `/api/send` endpoint.
 
 ## Setup

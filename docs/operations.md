@@ -8,7 +8,7 @@ Private credentials and database contents stay on potatoserver.
 
 Miniflux, Umami, CMS, Wubzduh, Job Board, ntfy, Caddy, and LGTM run on K3s.
 Cloudflare Tunnel and Tailscale run as host services.
-Docker is disabled. K3s uses its own containerd runtime.
+K3s uses its own containerd runtime. The cleanup removed the system Docker packages and data.
 Caddy exposes host ports 80 and 443 and routes requests through Kubernetes service DNS.
 The `deployments.conf` file records the active runtimes.
 The root `kustomization.yaml` declares the complete deployment and generates Caddy and Grafana configuration maps.
@@ -155,7 +155,7 @@ The host reports an Inspiron 7559 with BIOS 1.2.2 from January 22, 2017.
 CMS and Umami allow three minutes for startup before normal liveness monitoring begins.
 
 Wubzduh's Spotify album requests return HTTP 403, as they did before migration.
-Seven scheduled nightly backup observations remain pending.
+The first scheduled cluster and application backups passed on November 12, 2026.
 The [migration record](archive/k3s-migration-20261111.md) retains the historical checkpoints and retired command paths.
 
 ## Sources
