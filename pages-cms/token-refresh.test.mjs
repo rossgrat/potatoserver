@@ -12,11 +12,16 @@ const { getGithubAccount } = await import("../lib/github-account.ts");
 test("expired GitHub token is renewed before repository access", async (t) => {
   const expiresAt = new Date(Date.now() + 3600000);
   t.mock.method(db.query.accountTable, "findFirst", async () => ({
-    id: "account-1", userId: "owner-1", accountId: "69823943", providerId: "github",
-    accessToken: "expired-token", accessTokenExpiresAt: new Date(0),
+    id: "account-1",
+    userId: "owner-1",
+    accountId: "69823943",
+    providerId: "github",
+    accessToken: "expired-token",
+    accessTokenExpiresAt: new Date(0),
   }));
   const refresh = t.mock.method(auth.api, "getAccessToken", async () => ({
-    accessToken: "renewed-token", accessTokenExpiresAt: expiresAt,
+    accessToken: "renewed-token",
+    accessTokenExpiresAt: expiresAt,
   }));
   const account = await getGithubAccount("owner-1");
   assert.equal(account.accessToken, "renewed-token");

@@ -12,9 +12,11 @@ export function SignIn() {
   const [message, setMessage] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const safeRedirect = getSafeRedirect(searchParams.get("redirect") || "");
-  const error = message || (searchParams.has("error")
-    ? "This CMS is only available to rossgrat. Sign in with that GitHub account."
-    : null);
+  const error =
+    message ||
+    (searchParams.has("error")
+      ? "This CMS is only available to rossgrat. Sign in with that GitHub account."
+      : null);
 
   const handleSignIn = async () => {
     setPending(true);
@@ -42,7 +44,11 @@ export function SignIn() {
       <div className="sm:max-w-[340px] w-full space-y-6">
         <h1 className="text-lg font-medium tracking-tight text-center">Ross's blog CMS</h1>
         <p className="text-sm text-muted-foreground text-center">Private access for rossgrat.</p>
-        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        {error && (
+          <p role="alert" className="text-sm text-destructive">
+            {error}
+          </p>
+        )}
         <Button type="button" className="w-full" onClick={handleSignIn} disabled={pending}>
           Sign in with GitHub
           {pending && <Loader className="size-4 animate-spin" />}
