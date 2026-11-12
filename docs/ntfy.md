@@ -1,10 +1,12 @@
 # ntfy
 
-ntfy runs in the K3s namespace `ntfy` at `https://alerts.grattafiori.dev`.
-Caddy forwards requests to `ntfy.ntfy.svc.cluster.local:8080`.
-The ntfy.sh relay provides iOS push delivery through APNs.
+Authenticated push notifications at `https://alerts.grattafiori.dev`.
+The [K3s declaration](../k3s/ntfy.yaml) runs namespace `ntfy`; the ntfy.sh relay supplies iOS push delivery.
+Default access is `deny-all`.
 
-On potatoserver, define this helper for the commands below:
+## Users and tokens
+
+On potatoserver, define this helper:
 
 ```bash
 ntfyctl() {
@@ -14,86 +16,23 @@ ntfyctl() {
 }
 ```
 
-## Auth
+Use `ntfyctl user add USER`, `ntfyctl access USER TOPIC read-write`, and `ntfyctl token add USER` to configure a publisher.
+Use `read-only` for subscribers and `reset` to remove topic access.
+The `user` and `token` subcommands also list and remove entries; `user add --role=admin USER` creates an administrator.
 
-Default access is `deny-all`. All users and tokens are stored in `/var/lib/ntfy/auth.db` on the retained K3s claim `ntfy/auth`.
+Replace `TOKEN` and `TOPIC` with the generated token and permitted topic:
 
-### User management
-
-```bash
-# Add a user
-ntfyctl user add <username>
-
-# Add an admin user
-ntfyctl user add --role=admin <username>
-
-# Delete a user
-ntfyctl user del <username>
-
-# List users
-ntfyctl user list
+```sh
+curl -H "Authorization: Bearer TOKEN" -d "Hello!" https://alerts.grattafiori.dev/TOPIC
 ```
 
-### Access control
+Optional headers include `Title`, `Click`, and `Priority` from 1 to 5; 3 is the default.
+On iOS, add the topic in the ntfy app with this server URL and the user's credentials.
 
-```bash
-# Grant a user read-write access to a topic
-ntfyctl access <username> <topic> read-write
+## Retained data
 
-# Grant read-only access
-ntfyctl access <username> <topic> read-only
-
-# Remove access
-ntfyctl access <username> <topic> reset
-```
-
-### Tokens
-
-Services authenticate with bearer tokens instead of username/password.
-
-```bash
-# Generate a token for a user
-ntfyctl token add <username>
-
-# List tokens
-ntfyctl token list
-
-# Remove a token
-ntfyctl token remove <token>
-```
-
-## Publishing
-
-```bash
-# Simple message
-curl -H "Authorization: Bearer <token>" -d "Hello!" https://alerts.grattafiori.dev/<topic>
-
-# With title, priority, and click action
-curl -H "Authorization: Bearer <token>" \
-     -H "Title: Alert" \
-     -H "Priority: 5" \
-     -H "Click: https://example.com" \
-     -d "Something happened" \
-     https://alerts.grattafiori.dev/<topic>
-```
-
-Priority levels: 1 (min), 2 (low), 3 (default), 4 (high), 5 (urgent — bypasses DND).
-
-## Subscribing (iOS)
-
-1. Install the ntfy app
-2. Tap **+** to subscribe
-3. Topic: `<topic>`
-4. Server: `https://alerts.grattafiori.dev`
-5. Enter username and password when prompted
-
-## Recovery
-
-Nightly backups use SQLite's online backup API for the active authentication database.
-The backups also contain the cache volume and K3s declarations.
-All backups stay on potatoserver. The retired Docker data is archived in server-local cleanup backups.
-Message history remains in memory because the deployment does not set a persistent message cache.
-Isolated publication, subscription, and pod replacement tests passed during migration.
-A test notification reached the existing phone subscription after the move.
-
-See [the operations guide](operations.md) and [ntfy configuration](https://docs.ntfy.sh/config/).
+Authentication lives in `/var/lib/ntfy/auth.db` on claim `ntfy/auth`.
+Nightly backups use SQLite's online backup API and retain volume data and Kubernetes declarations on potatoserver.
+Message history is in memory; the deployment does not enable a persistent message cache.
+Retired Docker data remains in server-local retirement backups.
+See [operations](operations.md) for recovery tests and [ntfy configuration](https://docs.ntfy.sh/config/) for command details.
