@@ -130,7 +130,11 @@ Create a private directory before running service verification:
 ```sh
 mkdir -m 700 /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
 bash ops/verify-services.sh /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
+bash ops/verify-telemetry.sh /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
 ```
+
+The telemetry check requires API and worker logs from the current containers and available fetcher metrics.
+Its two-hour log window covers the worker's hourly fetch schedule.
 
 Prepare a storage and boot baseline before a planned reboot:
 
