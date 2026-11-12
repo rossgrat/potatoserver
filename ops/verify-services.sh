@@ -5,8 +5,9 @@ script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 evidence=${1:?Pass an existing evidence directory on potatoserver}
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
-bash /home/rossgrat/repos/network/ops/apply-k3s.sh --diff
+make --no-print-directory -s -C /home/rossgrat/repos/network k3s-diff
 "${kubectl[@]}" wait --for=condition=Ready node/potatoserver --timeout=30s
+[[ $("${kubectl[@]}" get node/potatoserver -o jsonpath='{.status.nodeInfo.kubeletVersion}') == $(cat "$script_dir/../k3s/release") ]]
 "${kubectl[@]}" get deployments,statefulsets,pods,persistentvolumeclaims -A -o json > "$evidence/cluster-health.json"
 "${kubectl[@]}" get persistentvolumes -o json > "$evidence/volumes.json"
 /usr/local/libexec/potatoserver-runtime/node-24.22.2 - "$evidence" <<'JS'

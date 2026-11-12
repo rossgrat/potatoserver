@@ -12,7 +12,7 @@ delete application.livenessProbe;
 spec.restartPolicy = 'Never';
 spec.terminationGracePeriodSeconds = 1;
 spec.containers.push({
-  name: 'client', image: fs.readFileSync(new URL('../k3s/backup-image', import.meta.url), 'utf8').trim(),
+  name: 'client', image: fs.readFileSync(new URL('../../k3s/backup-image', import.meta.url), 'utf8').trim(),
   command: ['node', '-e', 'setInterval(() => {}, 1000)'],
   securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ['ALL'] } },
   resources: { requests: { cpu: '10m', memory: '32Mi' }, limits: { cpu: '100m', memory: '128Mi' } },

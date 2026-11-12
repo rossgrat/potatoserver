@@ -2,23 +2,14 @@
 set -euo pipefail
 umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
-container=${1:?Pass the database backup label}
+namespace=${1:?Pass miniflux, umami, pages-cms, wubzduh, or job-board}
 target=${2:?Pass a new backup directory}
+case "$namespace" in miniflux|umami|pages-cms|wubzduh|job-board) ;; *) exit 2 ;; esac
+case "$target" in /home/rossgrat/backups/*) ;; *) exit 2 ;; esac
 mkdir "$target"
-namespace=
-case "$container" in
-  miniflux-postgres-1) namespace=miniflux ;;
-  umami-postgres-1) namespace=umami ;;
-  pages-cms-postgres-1) namespace=pages-cms ;;
-  wubzduh-postgres-1) namespace=wubzduh ;;
-  job-board-postgres) namespace=job-board ;;
-  *) exit 2 ;;
-esac
-[[ $(bash "$script_dir/runtime-for.sh" "$namespace" /home/rossgrat/repos/network/deployments.conf) == k3s ]]
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
 "${kubectl[@]}" get statefulset/postgres -n "$namespace" -o jsonpath='{.spec.template.spec.containers[0].image}' > "$target/image.txt"
-printf 'k3s\n' > "$target/authority.txt"
 database_exec() {
   local stdin=()
   if [[ "$1" == -i ]]; then stdin=(-i); shift; fi
@@ -37,7 +28,7 @@ read -r -t 30 snapshot <&"${SNAPSHOT[0]}"
 [[ "$snapshot" =~ ^[0-9A-F]+-[0-9A-F]+-[0-9]+$ ]]
 database_exec sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc --snapshot="$1"' sh "$snapshot" > "$target/database.dump"
 database_exec sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --schema-only --no-owner --no-privileges --snapshot="$1"' sh "$snapshot" > "$target/schema.sql"
-cat "$script_dir/database-fingerprint.sql" >&"${SNAPSHOT[1]}"
+cat "$script_dir/lib/database-fingerprint.sql" >&"${SNAPSHOT[1]}"
 printf '\n\\echo FINGERPRINT_COMPLETE\n' >&"${SNAPSHOT[1]}"
 while read -r -t 180 line <&"${SNAPSHOT[0]}"; do
   if [[ "$line" == FINGERPRINT_COMPLETE ]]; then break; fi
@@ -48,4 +39,6 @@ printf 'ROLLBACK;\n\\q\n' >&"${SNAPSHOT[1]}"
 wait "$snapshot_pid"
 snapshot_pid=
 database_exec sh -c 'exec pg_dumpall -U "$POSTGRES_USER" --globals-only' > "$target/globals.sql"
-printf 'Database backup: %s (k3s)\n' "$container"
+"${kubectl[@]}" get deployments,statefulsets,services,persistentvolumeclaims,networkpolicies,configmaps,secrets -n "$namespace" -o json > "$target/resources.json"
+if [[ "$namespace" == umami ]]; then cp /home/rossgrat/.config/umami/admin.json "$target/http-auth.json"; fi
+printf 'Database backup: %s (k3s)\n' "$namespace"

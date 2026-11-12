@@ -24,10 +24,11 @@ date -u +%FT%TZ > "$backup_dir/started.txt"
 "${K[@]}" get pods -A -o wide > "$backup_dir/runtime.txt"
 free -h > "$backup_dir/memory.txt"
 df -h / > "$backup_dir/disk.txt"
-cp "$script_dir/database-fingerprint.sql" "$backup_dir/"
+cp "$script_dir/lib/database-fingerprint.sql" "$backup_dir/"
 pids=()
-for label in miniflux-postgres-1 job-board-postgres wubzduh-postgres-1 umami-postgres-1 pages-cms-postgres-1; do
-  bash "$script_dir/backup-database.sh" "$label" "$backup_dir/$label" & pids+=("$!")
+for entry in miniflux:miniflux-postgres-1 job-board:job-board-postgres wubzduh:wubzduh-postgres-1 umami:umami-postgres-1 pages-cms:pages-cms-postgres-1; do
+  IFS=: read -r namespace label <<< "$entry"
+  bash "$script_dir/backup-database.sh" "$namespace" "$backup_dir/$label" & pids+=("$!")
 done
 result=0
 for pid in "${pids[@]}"; do wait "$pid" || result=1; done
@@ -46,11 +47,11 @@ tar -czf "$backup_dir/host-configuration.tar.gz" -C / \
   sha256sum configuration.tar.gz ./*-resources.json ./*/database.dump ./*/schema.sql ./*/globals.sql \
     ./*/image.txt ./*/connection.txt ./*/source-fingerprint.txt > DATABASE_SHA256SUMS
 )
-bash "$script_dir/backup-ntfy.sh" "$backup_dir"
+bash "$script_dir/lib/backup-ntfy.sh" "$backup_dir"
 "${K[@]}" exec -n wubzduh deployment/wubzduh -- tar -C /var/log/wubzduh -cf - . > "$backup_dir/wubzduh-logs.tar"
 gzip -1 "$backup_dir/wubzduh-logs.tar"
 for helper in caddy lgtm; do
-  /usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/backup-infrastructure.mjs" "$helper" | "${K[@]}" apply -f - >/dev/null
+  /usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/lib/backup-infrastructure.mjs" "$helper" | "${K[@]}" apply -f - >/dev/null
   "${K[@]}" wait --for=condition=Ready pod/state-backup -n "$helper" --timeout=120s
   if [[ "$helper" == caddy ]]; then
     "${K[@]}" exec -n caddy state-backup -- sh -ec 'for name in data config media logs; do cp -R --preserve=mode,timestamps "/$name" "/tmp/$name"; done'

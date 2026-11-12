@@ -38,7 +38,7 @@ From `/home/rossgrat/repos/network` on potatoserver, run:
 ```sh
 K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml get pods -n umami
 K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml logs -n umami deployment/umami --tail=100
-bash umami/backup.sh /home/rossgrat/backups/umami/manual
+bash ops/backup-database.sh umami /home/rossgrat/backups/umami/manual
 ```
 
 Backups contain the PostgreSQL database and application secrets.

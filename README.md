@@ -21,7 +21,7 @@ Potatoserver provides public services through [Cloudflare Tunnel](docs/cloudflar
 
 ```
 Public services:   Internet → Cloudflare Edge (TLS/WAF/DDoS) → Tunnel (QUIC) → cloudflared → Caddy:80 → service
-Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) → lgtm:3000
+Private services: Tailscale device → tailnet → host:443 → Caddy (TLS) → Kubernetes service
 ```
 
 Miniflux and Grafana use the host's Tailscale IP.
@@ -55,21 +55,21 @@ make deploy    # Pull configuration and apply it on the server
 
 - `caddy/Caddyfile`: Routing configuration. Public tunnel routes use `http://`. Private routes use Caddy HTTPS.
 - `kustomization.yaml`: Complete K3s deployment and generated configuration maps
-- `deployments.conf`: The runtime selected for each service
 - `k3s/*.yaml`: Application versions, storage, probes, and network rules
-- `ops/apply-k3s.sh`: Apply active services from the declared configuration
+- `ops/`: Deployment, backup, and health commands
+- `ops/lib/`: Internal helpers used by those commands
+- `tests/recovery/`: Isolated application, ntfy, and cluster recovery tests
+- `systemd/`: Host unit files, drop-ins, and installed helper sources
 - `k3s/ntfy.yaml`: ntfy server configuration and retained storage
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
 
 - [Operations](docs/operations.md): Deployment, recovery, health checks, and server-local backups
-- [Migration record](docs/archive/k3s-migration-20261111.md): Completed migration checkpoints and known follow-up work
 - [Pages CMS](docs/pages-cms.md): Blog editing, deployment, and backups
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
 - [Tailscale](docs/tailscale.md): Private access to Miniflux and Grafana
-- [Hosting on Tailscale](docs/hosting-on-tailscale.md) — General patterns for putting a service on the tailnet
 - [ntfy](docs/ntfy.md) — Push notification server setup, auth, and usage
 - [Umami](docs/umami.md): Blog analytics, privacy controls, and backups
 

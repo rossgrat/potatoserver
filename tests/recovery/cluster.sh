@@ -14,7 +14,7 @@ cleanup() {
   "${K[@]}" delete namespace "$namespace" --ignore-not-found --wait=true --timeout=90s >/dev/null
 }
 trap cleanup EXIT
-/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/cluster-recovery-resources.mjs" "$namespace" > "$target/resources.json"
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/cluster.mjs" "$namespace" > "$target/resources.json"
 "${K[@]}" apply -f "$target/resources.json" > "$target/apply.txt"
 "${K[@]}" wait --for=jsonpath='{.status.phase}'=Running pod/recovery -n "$namespace" --timeout=120s
 "${K[@]}" exec -i -n "$namespace" recovery -- tar -xzf - -C / < "$evidence/cluster-backup.tar.gz"

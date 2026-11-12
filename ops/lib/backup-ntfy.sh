@@ -5,7 +5,7 @@ script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 target=${1:?Pass the existing backup directory}
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
-"${kubectl[@]}" apply -f "$script_dir/../k3s/ntfy-backup.yaml"
+"${kubectl[@]}" apply -f "$script_dir/ntfy-backup.yaml"
 trap '"${kubectl[@]}" delete pod/state-backup -n ntfy --ignore-not-found --wait=true >/dev/null' EXIT
 "${kubectl[@]}" wait --for=condition=Ready pod/state-backup -n ntfy --timeout=120s
 "${kubectl[@]}" exec -i -n ntfy state-backup -- node --input-type=module <<'JS'

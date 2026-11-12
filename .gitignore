@@ -3,8 +3,7 @@
 *.env
 .env.*
 
-# Docker volumes and data
-caddy/logs/
+# Runtime logs
 */logs/
 
 # Claude Code
@@ -19,7 +18,4 @@ caddy/logs/
 *.bak
 *.backup
 
-!pages-cms/.env.example
-!umami/.env.example
 caddy/media/
-/state/

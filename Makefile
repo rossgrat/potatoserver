@@ -1,6 +1,6 @@
 SERVER = potatoserver
 REMOTE_DIR = ~/repos/network
-include deployments.conf
+KUBECTL = env K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml
 
 .PHONY: up down restart logs deploy k3s-apply k3s-diff k3s-stop k3s-logs
 
@@ -16,20 +16,20 @@ logs:
 	$(MAKE) k3s-logs SERVICE=caddy
 
 deploy:
-	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull && make up"
+	ssh $(SERVER) "cd $(REMOTE_DIR) && git pull --ff-only && make up"
 
 k3s-apply:
-	bash ops/apply-k3s.sh
+	flock -n /home/rossgrat/.local/state/potatoserver/operations.lock $(KUBECTL) apply -k .
 
 k3s-diff:
-	bash ops/apply-k3s.sh --diff
+	$(KUBECTL) diff -k .
 
 k3s-stop:
 	bash ops/stop-k3s.sh
 
 k3s-logs:
 	@test -n "$(SERVICE)" || { echo 'Pass SERVICE, for example SERVICE=job-board.' >&2; exit 2; }
-	K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml logs -n $(SERVICE) -l app=$(SERVICE) --all-containers=true --tail=100 --prefix -f
+	$(KUBECTL) logs -n $(SERVICE) -l app=$(SERVICE) --all-containers=true --tail=100 --prefix -f
 
 .PHONY: cms-build cms-up cms-logs
 
@@ -41,4 +41,4 @@ cms-up:
 	bash ops/deploy-cms.sh
 
 cms-logs:
-	K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml logs -n pages-cms deployment/pages-cms --tail=100 -f
+	$(KUBECTL) logs -n pages-cms deployment/pages-cms --tail=100 -f

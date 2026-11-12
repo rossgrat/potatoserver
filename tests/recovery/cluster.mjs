@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 const namespace = process.argv[2];
-const image = fs.readFileSync(new URL('../k3s/recovery-image', import.meta.url), 'utf8').trim();
+const image = fs.readFileSync(new URL('../../k3s/recovery-image', import.meta.url), 'utf8').trim();
 const resources = [
   { apiVersion: 'v1', kind: 'Namespace', metadata: { name: namespace, labels: { 'pod-security.kubernetes.io/enforce': 'baseline', 'pod-security.kubernetes.io/enforce-version': 'v1.37' } } },
   { apiVersion: 'networking.k8s.io/v1', kind: 'NetworkPolicy', metadata: { name: 'isolated', namespace }, spec: { podSelector: {}, policyTypes: ['Ingress', 'Egress'] } },

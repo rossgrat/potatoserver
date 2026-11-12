@@ -1,27 +1,23 @@
 # Potatoserver operations
 
-Run these commands on potatoserver from `/home/rossgrat/repos/network`.
-The repository declares all eight services, their versions, storage, and network rules.
-Private credentials and database contents stay on potatoserver.
+Run server commands from `/home/rossgrat/repos/network` on potatoserver.
+The root `kustomization.yaml` declares the Kubernetes deployment.
+K3s uses its bundled containerd runtime. The host does not need Docker.
+Private credentials and backups stay on potatoserver.
 
-## Services and deployment
+## Deployments
 
-Miniflux, Umami, CMS, Wubzduh, Job Board, ntfy, Caddy, and LGTM run on K3s.
+Miniflux, Umami, Pages CMS, Wubzduh, Job Board, ntfy, Caddy, and LGTM run in K3s.
+Job Board has separate API and worker deployments.
+Five PostgreSQL StatefulSets hold the application databases.
+Caddy exposes host ports 80 and 443 and routes through Kubernetes service DNS.
 Cloudflare Tunnel and Tailscale run as host services.
-K3s uses its own containerd runtime. The cleanup removed the system Docker packages and data.
-Caddy exposes host ports 80 and 443 and routes requests through Kubernetes service DNS.
-The `deployments.conf` file records the active runtimes.
-The root `kustomization.yaml` declares the complete deployment and generates Caddy and Grafana configuration maps.
+The expected K3s version is pinned in `k3s/release`.
 
-Compare the declared configuration with the cluster:
+Review and apply declarations:
 
 ```sh
 make k3s-diff
-```
-
-Apply the declared configuration:
-
-```sh
 make k3s-apply
 ```
 
@@ -29,64 +25,69 @@ Read application logs:
 
 ```sh
 make k3s-logs SERVICE=job-board
+make logs
 ```
 
-`make up` applies all K3s declarations.
-`make down` stops the applications and databases.
-The older Docker deployment commands in the application repositories reject migrated services.
+`make up` applies declarations. `make down` stops applications and databases.
+The declarations retain persistent storage when workloads stop.
+The runtime guard in `ops/require-runtime.sh` rejects retired Docker deployment commands from the Job Board and Wubzduh repositories.
 
-## CMS image updates
+## CMS updates
 
-Build CMS images on a workstation with a container builder.
-Use a new pinned tag when the image contents change.
-Update that tag in the Makefile and `k3s/pages-cms.yaml` together.
+Build on a workstation with a container builder.
+Advance the pinned tag in both the Makefile and `k3s/pages-cms.yaml` when image contents change.
+The Dockerfile pins the application, Node version, and dependency lockfile.
 The image must target Linux amd64.
 
-From the workstation checkout, build and export the pinned image:
+From the workstation checkout:
 
 ```sh
 make cms-build
 docker image save potatoserver-pages-cms:2.1.8-r4-node24.22.2 > /tmp/pages-cms-image.tar
 ```
 
-Transfer the image archive to potatoserver.
-On potatoserver, back up the database and import the archive:
+Transfer the archive to potatoserver. Back up the database before an upgrade:
 
 ```sh
-bash pages-cms/backup.sh /home/rossgrat/backups/pages-cms/manual-YYYYMMDDTHHMMSS
+bash ops/backup-database.sh pages-cms /home/rossgrat/backups/pages-cms/manual-YYYYMMDDTHHMMSS
 sudo bash ops/import-cms-image.sh /home/rossgrat/pages-cms-image.tar
 make cms-up
 ```
 
-The import accepts a Docker or OCI image archive and checks its reference, architecture, and image identity.
-It saves recovery images under `/home/rossgrat/.local/state/potatoserver`.
-The deployment requires the imported image reference to match the declaration.
-It runs database migrations through a temporary Job from the declared CMS pod specification.
-Review schema changes before running an application upgrade.
+The import checks the image reference, architecture, and identity, then saves recovery images on the server.
+`make cms-up` runs a database migration Job before applying the CMS declaration.
+Review schema changes before upgrading. Retain the matching database backup and previous image for rollback.
 
 ## Backups
 
 The root timer captures K3s state at 02:55 America/Chicago.
 The user timer captures application data at 03:00 America/Chicago.
-Both timers remain enabled after logout and reboot.
-They write dated directories under `/home/rossgrat/backups`.
-They do not send data to the Mac or another server.
+Both write dated directories under `/home/rossgrat/backups`.
+The first scheduled runs succeeded on November 12, 2026.
 
-The application backup contains five PostgreSQL dumps, roles, schemas, and data fingerprints.
-It also contains K3s resources and Secrets, ntfy state, Wubzduh logs, media, custom images, Caddy state, and LGTM data.
-Database dumps and fingerprints use the same exported snapshot.
-ntfy uses SQLite's online backup API.
-Caddy continues serving traffic while the backup copies its files and checks certificate and key pairs.
-The script stops LGTM while it copies persistent files, then restarts LGTM before compression.
-The LGTM archive takes several minutes. Other application services continue to run.
+The full application backup contains PostgreSQL dumps, roles, schemas, fingerprints, Kubernetes resources and Secrets, ntfy state, media, custom images, and infrastructure data.
+Database dumps and fingerprints share an exported snapshot.
+ntfy authentication uses SQLite's online backup API.
+Caddy continues serving while its files are copied and certificate/key pairs are checked.
+LGTM stops during its data archive and restarts before compression. Grafana is unavailable during that interval.
 
-Run a manual application backup with a new directory:
+Run a full backup into a new directory:
 
 ```sh
 bash ops/backup.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
 ```
 
-Inspect the timers and last service results:
+Run a database backup with its namespace and a new directory:
+
+```sh
+bash ops/backup-database.sh umami /home/rossgrat/backups/umami/manual-YYYYMMDDTHHMMSS
+```
+
+The database command also saves namespace resources and Secrets.
+For Umami, it includes the saved administrator credentials.
+Full-backup database directories retain the labels used by existing recovery snapshots.
+
+Inspect timer schedules and service results:
 
 ```sh
 systemctl list-timers potatoserver-k3s-backup.timer
@@ -95,37 +96,41 @@ systemctl show potatoserver-k3s-backup.service -p Result
 systemctl --user show potatoserver-backup.service -p Result
 ```
 
-Repeat the protected host backup after changing tunnel, Wi-Fi, or Tailscale credentials.
-Run `sudo bash ops/backup-host-secrets.sh` with an existing `k3s-*` backup directory.
-The archive contains credentials. Keep its permissions at `600`.
+After changing tunnel, Wi-Fi, or Tailscale credentials, repeat the protected host backup:
+
+```sh
+sudo bash ops/backup-host-secrets.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
+```
+
+That command requires an existing backup directory and saves credentials with permissions `600`.
 
 ## Recovery tests
 
-Restore application databases and start isolated application copies:
+Recovery tests live in `tests/recovery`.
+Use a complete nightly or manual application backup, rather than a single-database backup directory:
 
 ```sh
-bash ops/restore-test.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
-bash ops/test-ntfy-restore.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
+bash tests/recovery/applications.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
+bash tests/recovery/ntfy.sh /home/rossgrat/backups/k3s-manual-YYYYMMDDTHHMMSS
 ```
 
-The tests compare database contents and schema, inspect indexes and sequences, and test database authentication.
-The restored applications use temporary K3s namespaces with isolated networks and temporary storage.
-They do not expose public ports or use production volumes.
-These tests do not replace a full host recovery procedure.
+The application tests compare restored contents and schema, inspect indexes and sequences, test passwords, and start isolated application copies.
+ntfy tests SQLite integrity, a saved bearer token, and rejection of unauthorized requests.
+Temporary namespaces use isolated networks and temporary storage without production volumes or public ports.
 
-Test a root cluster backup in isolation:
+Test a root cluster backup:
 
 ```sh
-bash ops/test-cluster-restore.sh /home/rossgrat/backups/k3s-state-YYYYMMDDTHHMMSSZ
+bash tests/recovery/cluster.sh /home/rossgrat/backups/k3s-state-YYYYMMDDTHHMMSSZ
 ```
 
-The test starts an agentless K3s API inside a temporary pod with no host volumes or service account.
-It compares saved and restored credentials without printing their contents.
-The recovery tests work with Docker stopped.
+The agentless recovery pod compares restored credentials and object identities without printing secret data.
+It uses no host volumes or service account.
+These tests exercise recovery inside the running cluster. A replacement host also needs its operating system, K3s, host services, and protected credentials restored.
 
-## Service and reboot verification
+## Health checks
 
-Create a private directory before running service verification:
+Create a private evidence directory and run:
 
 ```sh
 mkdir -m 700 /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
@@ -133,39 +138,33 @@ bash ops/verify-services.sh /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
 bash ops/verify-telemetry.sh /home/rossgrat/backups/k3s-health-YYYYMMDDTHHMMSS
 ```
 
-The telemetry check requires API and worker logs from the current containers and available fetcher metrics.
-Its two-hour log window covers the worker's hourly fetch schedule.
+The service check covers declared configuration, the pinned K3s version, workloads, retained storage, HTTPS routes, and timers.
+The telemetry check uses a two-hour log window for the worker's hourly fetch schedule and checks fetcher metrics.
+Run these checks after the server returns from a planned reboot.
 
-Prepare a storage and boot baseline before a planned reboot:
+## Host-managed files
 
-```sh
-bash ops/verify-reboot.sh --prepare
-```
+The installed root backup and firewall files are separate from the repository checkout.
+Their versioned sources are in `systemd/libexec`:
 
-After the host returns, run:
+| Source | Installed path |
+|---|---|
+| `systemd/libexec/backup-k3s-state.sh` | `/usr/local/libexec/potatoserver-k3s/backup-k3s-state.sh` |
+| `systemd/libexec/backup-k3s-state.mjs` | `/usr/local/libexec/potatoserver-k3s/backup-k3s-state.mjs` |
+| `systemd/libexec/firewall.sh` | `/usr/local/libexec/potatoserver-k3s/firewall.sh` |
 
-```sh
-bash ops/verify-reboot.sh
-```
+The root backup uses `/usr/local/libexec/potatoserver-runtime/node-24.22.2`.
+Unit and drop-in sources are in `systemd`. Host configuration is in `k3s/config.yaml`.
+Changing those sources requires installation as root; `make k3s-apply` only applies Kubernetes declarations.
 
-The test requires a new boot identity, unchanged persistent storage, ready applications, healthy routes, active timers, and stable container restart counts.
-It does not establish that the host restarted without manual intervention.
+## Known follow-ups
 
-## Follow-up work
-
-The applications recovered after a manual power-on following the November 11 reboot request.
-Automatic restart remains unresolved. The previous journal reached the system reboot target.
-The host reports an Inspiron 7559 with BIOS 1.2.2 from January 22, 2017.
-CMS and Umami allow three minutes for startup before normal liveness monitoring begins.
-
-Wubzduh's Spotify album requests return HTTP 403, as they did before migration.
-The first scheduled cluster and application backups passed on November 12, 2026.
-The [migration record](archive/k3s-migration-20261111.md) retains the historical checkpoints and retired command paths.
+The November 11 OS reboot required a manual power-on. Unattended OS reboot recovery remains unverified.
+The migration also recorded Spotify album HTTP 403 responses that predated K3s.
+Historical migration commands and receipts remain in Git history and the server's dated retirement backups.
 
 ## Sources
 
 - [K3s backup and recovery](https://docs.k3s.io/datastore/backup-restore)
 - [PostgreSQL consistent dumps](https://www.postgresql.org/docs/18/app-pgdump.html)
 - [SQLite online backup](https://www.sqlite.org/backup.html)
-- [Kubernetes startup probes](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/#protect-slow-starting-containers-with-startup-probes)
-- [Kubernetes pod port settings](https://kubernetes.io/docs/tasks/administer-cluster/sysctl-cluster/)

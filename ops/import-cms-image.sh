@@ -12,7 +12,7 @@ export K3S_CONFIG_FILE=/dev/null
 K=(/usr/local/bin/k3s kubectl --kubeconfig /etc/rancher/k3s/k3s.yaml)
 image=$("${K[@]}" create --dry-run=client -f "$script_dir/../k3s/pages-cms.yaml" -o jsonpath='{.spec.template.spec.containers[?(@.name=="pages-cms")].image}')
 [[ "$image" == docker.io/library/potatoserver-pages-cms:* && "$image" != *:latest ]]
-expected=$(/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/image-archive.mjs" "$archive" "$image")
+expected=$(/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/lib/image-archive.mjs" "$archive" "$image")
 if [[ -f "$state_dir/pages-cms-imported-image-ref" && $(cat "$state_dir/pages-cms-imported-image-ref") == "$image" && $(cat "$state_dir/pages-cms-imported-image-id") != "$expected" ]]; then
   printf 'Advance the CMS image tag in the Makefile and manifest before importing changed contents.\n' >&2
   exit 1

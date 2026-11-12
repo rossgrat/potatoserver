@@ -28,11 +28,11 @@ for target in "${targets[@]}"; do
   esac
   started=$SECONDS
   namespace="potato-restore-$service-$(date +%s)"
-  /usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/recovery-resources.mjs" "$backup" "$target" "$namespace" > "$backup/restore-results/$target-recovery.json"
+  /usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/applications.mjs" "$backup" "$target" "$namespace" > "$backup/restore-results/$target-recovery.json"
   "${K[@]}" apply -f "$backup/restore-results/$target-recovery.json" > "$backup/restore-results/$target-start.txt"
   "${K[@]}" rollout status statefulset/postgres -n "$namespace" --timeout=180s
   "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --exit-on-error --single-transaction --no-owner --no-privileges' < "$backup/$target/database.dump" > "$backup/restore-results/$target-restore.log" 2>&1
-  "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$script_dir/database-fingerprint.sql" > "$backup/restore-results/$target-fingerprint.txt"
+  "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$script_dir/../../ops/lib/database-fingerprint.sql" > "$backup/restore-results/$target-fingerprint.txt"
   diff -u "$backup/$target/source-fingerprint.txt" "$backup/restore-results/$target-fingerprint.txt" > "$backup/restore-results/$target-data.diff"
   "${K[@]}" exec -n "$namespace" postgres-0 -- sh -c 'exec pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" --schema-only --no-owner --no-privileges' > "$backup/restore-results/$target-schema.sql"
   for side in source restored; do
@@ -42,7 +42,7 @@ for target in "${targets[@]}"; do
   done
   diff -u "$backup/restore-results/$target-source-schema.txt" "$backup/restore-results/$target-restored-schema.txt" > "$backup/restore-results/$target-schema.diff"
   "${K[@]}" exec -n "$namespace" postgres-0 -- sh -c 'exec pg_amcheck -U "$POSTGRES_USER" --database "$POSTGRES_DB" --install-missing' > "$backup/restore-results/$target-amcheck.txt" 2>&1
-  "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$script_dir/sequence-check.sql" > "$backup/restore-results/$target-sequences.txt"
+  "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec psql -X -qAt -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < "$script_dir/sequences.sql" > "$backup/restore-results/$target-sequences.txt"
   sed -n '/^ALTER ROLE /p' "$backup/$target/globals.sql" | "${K[@]}" exec -i -n "$namespace" postgres-0 -- sh -c 'exec psql -X -q -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB"' > "$backup/restore-results/$target-roles.txt"
   "${K[@]}" exec -n "$namespace" postgres-0 -- sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -X -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 1"' > "$backup/restore-results/$target-password.txt"
   if "${K[@]}" exec -n "$namespace" postgres-0 -- sh -c 'PGPASSWORD=k3s-deliberately-incorrect psql -X -h postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc "SELECT 1"' > "$backup/restore-results/$target-invalid-password.txt" 2>&1; then exit 1; fi

@@ -13,7 +13,7 @@ cleanup() {
   "${K[@]}" delete namespace "$namespace" --ignore-not-found --wait=true --timeout=90s >/dev/null
 }
 trap cleanup EXIT
-/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/ntfy-recovery-resources.mjs" "$backup" "$namespace" > "$target/resources.json"
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/ntfy.mjs" "$backup" "$namespace" > "$target/resources.json"
 "${K[@]}" apply -f "$target/resources.json" > "$target/apply.txt"
 "${K[@]}" wait --for=jsonpath='{.status.phase}'=Running pod/recovery -n "$namespace" --timeout=120s
 for name in auth cache; do
