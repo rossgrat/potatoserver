@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
 ip -4 address show dev tailscale0 | grep -q '100.108.26.48/'
 for command in iptables ip6tables; do
   "$command" -w -N POTATO-K3S-IN 2>/dev/null || true

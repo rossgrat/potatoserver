@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 umask 077
+
 ((EUID == 0))
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 target=/home/rossgrat/backups/k3s-state-$(date -u +%Y%m%dT%H%M%SZ)
@@ -11,6 +12,6 @@ tar -czf "$target/cluster-backup.tar.gz" -C "$target/root" \
 gzip -t "$target/cluster-backup.tar.gz"
 rm -rf -- "$target/root"
 cd "$target"
-sha256sum cluster-backup.tar.gz > cluster-backup.sha256
+sha256sum cluster-backup.tar.gz >cluster-backup.sha256
 chown -R rossgrat:rossgrat "$target"
 printf 'K3s state backup saved to %s\n' "$target"
