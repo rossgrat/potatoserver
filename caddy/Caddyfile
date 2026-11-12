@@ -1,19 +1,19 @@
 http://cms.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30083 {
+	reverse_proxy pages-cms.pages-cms.svc.cluster.local:3000 {
 		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
 		header_up X-Forwarded-Proto https
 	}
 }
 
 http://stats.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30082 {
+	reverse_proxy umami.umami.svc.cluster.local:3000 {
 		header_up X-Forwarded-For {http.request.header.Cf-Connecting-Ip}
 		header_up X-Forwarded-Proto https
 	}
 }
 
 rss.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30081
+	reverse_proxy miniflux.miniflux.svc.cluster.local:8080
 
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -51,7 +51,7 @@ http://media.grattafiori.dev {
 }
 
 http://alerts.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30086
+	reverse_proxy ntfy.ntfy.svc.cluster.local:8080
 
 	header {
 		X-Frame-Options "SAMEORIGIN"
@@ -71,7 +71,7 @@ http://alerts.grattafiori.dev {
 }
 
 http://jobs.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30085
+	reverse_proxy job-board.job-board.svc.cluster.local:8080
 
 	header {
 		X-Frame-Options "SAMEORIGIN"
@@ -95,7 +95,7 @@ http://jobs.grattafiori.dev {
 # via the Cloudflare DNS-01 challenge — the host isn't publicly reachable, and .dev is HSTS-preloaded
 # so browsers refuse plain http. Requires CLOUDFLARE_API_TOKEN and the cloudflare DNS plugin.
 grafana.grattafiori.dev {
-	reverse_proxy lgtm:3000
+	reverse_proxy lgtm.lgtm.svc.cluster.local:3000
 
 	tls {
 		dns cloudflare {env.CLOUDFLARE_API_TOKEN}
@@ -121,7 +121,7 @@ grafana.grattafiori.dev {
 }
 
 http://wubzduh.grattafiori.dev {
-	reverse_proxy 172.18.0.1:30084
+	reverse_proxy wubzduh.wubzduh.svc.cluster.local:8080
 
 	header {
 		X-Frame-Options "SAMEORIGIN"

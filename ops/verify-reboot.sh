@@ -2,7 +2,25 @@
 set -euo pipefail
 umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
-checkpoint=$(cat "$script_dir/../state/reboot-check")
+state_dir=/home/rossgrat/.local/state/potatoserver
+export K3S_CONFIG_FILE=/dev/null
+kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
+case ${1:-} in
+  --prepare)
+    mkdir -p "$state_dir"
+    checkpoint=/home/rossgrat/backups/k3s-reboot-$(date -u +%Y%m%dT%H%M%SZ)
+    mkdir "$checkpoint"
+    cat /proc/sys/kernel/random/boot_id > "$checkpoint/boot-id.before"
+    uptime -s > "$checkpoint/boot-time.before"
+    "${kubectl[@]}" get persistentvolumeclaims -A -o json > "$checkpoint/claims.before.json"
+    printf '%s\n' "$checkpoint" > "$state_dir/reboot-check"
+    printf 'Saved reboot checkpoint: %s\n' "$checkpoint"
+    exit 0
+    ;;
+  '') ;;
+  *) exit 2 ;;
+esac
+checkpoint=$(cat "$state_dir/reboot-check")
 boot=$(cat /proc/sys/kernel/random/boot_id)
 if [[ "$boot" == $(cat "$checkpoint/boot-id.before") ]]; then
   printf 'The boot ID is unchanged. Reboot recovery is not verified.\n' >&2
@@ -12,8 +30,6 @@ evidence="$checkpoint/after-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir "$evidence"
 printf '%s\n' "$boot" > "$evidence/boot-id.after"
 uptime -s > "$evidence/boot-time.txt"
-export K3S_CONFIG_FILE=/dev/null
-kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
 ready=false
 for _ in {1..60}; do
   if "${kubectl[@]}" get --raw /readyz --request-timeout=5s > "$evidence/api-ready.txt" 2>&1; then ready=true; break; fi
@@ -21,26 +37,20 @@ for _ in {1..60}; do
 done
 "$ready"
 "${kubectl[@]}" wait --for=condition=Ready node/potatoserver --timeout=180s
-for namespace in miniflux umami pages-cms wubzduh job-board ntfy; do
-  if [[ "$namespace" != ntfy ]]; then "${kubectl[@]}" rollout status statefulset/postgres -n "$namespace" --timeout=180s; fi
+for namespace in miniflux umami pages-cms wubzduh job-board ntfy caddy lgtm; do
+  if [[ "$namespace" != ntfy && "$namespace" != caddy && "$namespace" != lgtm ]]; then "${kubectl[@]}" rollout status statefulset/postgres -n "$namespace" --timeout=180s; fi
   "${kubectl[@]}" rollout status deployment/"$namespace" -n "$namespace" --timeout=180s
 done
 "${kubectl[@]}" rollout status deployment/worker -n job-board --timeout=180s
-ready=false
-for _ in {1..60}; do
-  if [[ $(docker inspect --format '{{.State.Health.Status}}' lgtm) == healthy ]]; then ready=true; break; fi
-  sleep 5
-done
-"$ready"
-bash "$script_dir/verify-final.sh" "$evidence" --after-reboot
+bash "$script_dir/verify-services.sh" "$evidence"
 "${kubectl[@]}" get pods -A -o json > "$evidence/pods.before.json"
 printf 'Observing container stability for 30 seconds\n'
 sleep 30
 "${kubectl[@]}" get pods -A -o json > "$evidence/pods.after.json"
-node - "$checkpoint" "$evidence" <<'JS'
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 - "$checkpoint" "$evidence" <<'JS'
 const fs = require('fs');
 const [checkpoint, evidence] = process.argv.slice(2);
-const namespaces = ['miniflux', 'umami', 'pages-cms', 'wubzduh', 'job-board', 'ntfy'];
+const namespaces = ['miniflux', 'umami', 'pages-cms', 'wubzduh', 'job-board', 'ntfy', 'caddy', 'lgtm'];
 const read = file => JSON.parse(fs.readFileSync(file)).items;
 const claims = items => items.filter(item => item.kind === 'PersistentVolumeClaim' && namespaces.includes(item.metadata.namespace))
   .map(item => [item.metadata.namespace, item.metadata.name, item.metadata.uid, item.spec.volumeName]).sort();

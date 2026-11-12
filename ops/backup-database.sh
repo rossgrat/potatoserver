@@ -2,10 +2,9 @@
 set -euo pipefail
 umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
-container=${1:?Pass the source database container name}
+container=${1:?Pass the database backup label}
 target=${2:?Pass a new backup directory}
 mkdir "$target"
-authority=docker
 namespace=
 case "$container" in
   miniflux-postgres-1) namespace=miniflux ;;
@@ -13,29 +12,17 @@ case "$container" in
   pages-cms-postgres-1) namespace=pages-cms ;;
   wubzduh-postgres-1) namespace=wubzduh ;;
   job-board-postgres) namespace=job-board ;;
+  *) exit 2 ;;
 esac
-if [[ -n "$namespace" ]]; then
-  authority=${3:-$(bash "$script_dir/runtime-for.sh" "$namespace" /home/rossgrat/repos/network/deployments.conf)}
-  case "$authority" in
-    docker) ;;
-    k3s)
-      export K3S_CONFIG_FILE=/dev/null
-      kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
-      "${kubectl[@]}" get statefulset/postgres -n "$namespace" -o jsonpath='{.spec.template.spec.containers[0].image}' > "$target/image.txt"
-      ;;
-    *) printf 'Unknown database authority for %s\n' "$namespace" >&2; exit 1 ;;
-  esac
-fi
-printf '%s\n' "$authority" > "$target/authority.txt"
-if [[ "$authority" == docker ]]; then docker inspect --format '{{.Image}}' "$container" > "$target/image.txt"; fi
+[[ $(bash "$script_dir/runtime-for.sh" "$namespace" /home/rossgrat/repos/network/deployments.conf) == k3s ]]
+export K3S_CONFIG_FILE=/dev/null
+kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
+"${kubectl[@]}" get statefulset/postgres -n "$namespace" -o jsonpath='{.spec.template.spec.containers[0].image}' > "$target/image.txt"
+printf 'k3s\n' > "$target/authority.txt"
 database_exec() {
   local stdin=()
   if [[ "$1" == -i ]]; then stdin=(-i); shift; fi
-  if [[ "$authority" == k3s ]]; then
-    "${kubectl[@]}" exec "${stdin[@]}" -n "$namespace" -c postgres postgres-0 -- "$@"
-  else
-    docker exec "${stdin[@]}" "$container" "$@"
-  fi
+  "${kubectl[@]}" exec "${stdin[@]}" -n "$namespace" -c postgres postgres-0 -- "$@"
 }
 database_exec sh -c 'printf "%s\n%s\n" "$POSTGRES_USER" "$POSTGRES_DB"' > "$target/connection.txt"
 snapshot_pid=
@@ -61,4 +48,4 @@ printf 'ROLLBACK;\n\\q\n' >&"${SNAPSHOT[1]}"
 wait "$snapshot_pid"
 snapshot_pid=
 database_exec sh -c 'exec pg_dumpall -U "$POSTGRES_USER" --globals-only' > "$target/globals.sql"
-printf 'Database backup: %s (%s)\n' "$container" "$authority"
+printf 'Database backup: %s (k3s)\n' "$container"

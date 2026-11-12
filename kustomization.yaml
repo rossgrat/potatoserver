@@ -1,0 +1,28 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- k3s/local-retain.yaml
+- k3s/miniflux.yaml
+- k3s/miniflux-egress.yaml
+- k3s/umami.yaml
+- k3s/pages-cms.yaml
+- k3s/pages-cms-egress.yaml
+- k3s/wubzduh.yaml
+- k3s/wubzduh-egress.yaml
+- k3s/job-board.yaml
+- k3s/job-board-egress.yaml
+- k3s/ntfy.yaml
+- k3s/ntfy-egress.yaml
+- k3s/caddy.yaml
+- k3s/lgtm.yaml
+configMapGenerator:
+- name: configuration
+  namespace: caddy
+  files:
+  - Caddyfile=caddy/Caddyfile
+- name: dashboards
+  namespace: lgtm
+  files:
+  - job-board.yaml=lgtm/provisioning/dashboards/job-board.yaml
+  - job-board-overview.json=lgtm/provisioning/dashboards/job-board-overview.json

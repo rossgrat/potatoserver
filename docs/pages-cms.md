@@ -2,7 +2,7 @@
 
 Pages CMS edits the blog repository at `https://cms.grattafiori.dev`.
 Cloudflare Tunnel forwards this hostname to Caddy at `127.0.0.1:80` on potatoserver.
-Caddy forwards CMS requests to the K3s NodePort at `172.18.0.1:30083`.
+Caddy forwards CMS requests to `pages-cms.pages-cms.svc.cluster.local:3000`.
 Only the GitHub account `rossgrat` can sign in to this CMS.
 The authentication callback accepts only GitHub user ID `69823943`, as set by `ALLOWED_GITHUB_USER_ID`.
 A missing owner ID denies sign-in. Email sign-in is disabled.
@@ -37,7 +37,7 @@ Session cookies use Secure, HttpOnly, and SameSite=Lax.
 These attributes restrict cookie transport, script access, and cross-site use.
 The app rejects cross-site authentication requests and invalid webhook signatures.
 The application runs as the non-root Node user.
-The NodePort accepts traffic on the configured loopback, Tailscale, and Docker bridge addresses.
+The network policy allows Caddy to reach the application port.
 
 A stolen GitHub account or CMS session can let an attacker act as you.
 A compromised server or application can also expose the credentials stored there.
@@ -62,16 +62,19 @@ Password login was disabled in the deployed authentication configuration.
 
 Restore the database, application Secret, and imported image from the backups on potatoserver.
 Keep all credentials on the server. Do not generate a private copy on the Mac.
-Use the [migration runbook](k3s-migration.md) for the declared runtime and recovery gates.
+Use the [operations guide](operations.md) for the declared runtime and recovery gates.
 The existing GitHub App and tunnel route remain in use.
 
 ## Operations
 
 On potatoserver, run `make cms-logs` to read application logs.
-The `cms-up` target applies the pinned K3s declaration.
-A rebuilt image requires import into K3s before deployment. The target rejects a different Docker image ID.
-The deployment does not run schema migrations automatically.
-Do not use `make cms-deploy` for an image update until its import and database migration steps are prepared.
+The `cms-up` target runs a database migration job, then applies the pinned K3s declaration.
+A rebuilt image requires import into K3s before deployment. The target requires the imported image reference to match the declaration.
+Advance the image tag in the Makefile and manifest when the image contents change.
+Build images on a workstation for Linux amd64, then transfer the archive to potatoserver.
+Run `sudo bash ops/import-cms-image.sh /home/rossgrat/pages-cms-image.tar` before `make cms-up`.
+The [operations guide](operations.md#cms-image-updates) contains the build, backup, and import commands.
+Review database migrations before deploying an application upgrade.
 
 On potatoserver, create a backup outside the repository:
 
@@ -79,14 +82,14 @@ On potatoserver, create a backup outside the repository:
 ./pages-cms/backup.sh /home/rossgrat/backups/pages-cms/manual
 ```
 
-Each K3s backup contains a database dump, comparison evidence, and `resources.yaml`.
+Each K3s backup contains a database dump, comparison evidence, and `resources.json`.
 The resource archive includes application credentials and the token encryption key.
 Keep every backup file private on potatoserver.
 
 Before an upgrade, retain the previous image and its database backup.
 If a migration changes the database, restore the matching backup before starting the previous image.
 Restore into a separate database first to test the backup.
-Retain the K3s claim `pages-cms/data-postgres-0` and the original Docker volume during recovery.
+Retain the K3s claim `pages-cms/data-postgres-0` during recovery.
 
 The dependency update addresses published [Next.js security fixes](https://github.com/advisories/GHSA-2464-fhr4-w9xw).
 The application source is pinned to Pages CMS 2.1.8 with patches in `pages-cms/patch-auth.mjs` and `pages-cms/patch-validation.mjs`.

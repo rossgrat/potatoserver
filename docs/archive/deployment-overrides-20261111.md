@@ -1,4 +1,7 @@
-# Deployment overrides
+# Retired deployment overrides
+
+Historical record from November 11, 2026. The applications now run on K3s.
+Use [operations](../operations.md) for current procedures.
 
 These files preserve the service versions and database mounts deployed on potatoserver.
 The source repositories live separately. Both applications now run on K3s.

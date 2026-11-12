@@ -4,8 +4,8 @@ Miniflux and Grafana use the tailnet, the private Tailscale network. Both servic
 
 | Service | URL | Caddy destination |
 |---|---|---|
-| Miniflux | `https://rss.grattafiori.dev` | `172.18.0.1:30081` |
-| Grafana | `https://grafana.grattafiori.dev` | `lgtm:3000` |
+| Miniflux | `https://rss.grattafiori.dev` | `miniflux.miniflux.svc.cluster.local:8080` |
+| Grafana | `https://grafana.grattafiori.dev` | `lgtm.lgtm.svc.cluster.local:3000` |
 
 Their DNS-only A records point to `100.108.26.48`, the Tailscale address of potatoserver.
 Neither hostname has a Cloudflare Tunnel route. Umami remains public because its `/api/send` endpoint receives page views from website visitors.
@@ -16,14 +16,14 @@ Caddy accepts private HTTPS connections on host port 443 and forwards them to ea
 Caddy obtains certificates through a DNS challenge, proof of domain ownership through DNS records.
 The [DNS challenge](https://caddyserver.com/docs/automatic-https#dns-challenge) works without public access to the service.
 
-Caddy uses the existing `caddy-dns/cloudflare` plugin and `CLOUDFLARE_API_TOKEN` from `caddy/.env`.
+Caddy uses the existing `caddy-dns/cloudflare` plugin and `CLOUDFLARE_API_TOKEN` from the K3s Secret `caddy/cloudflare`.
 Keep that token available for automatic certificate renewal. Removing a tunnel route does not remove the need for Cloudflare DNS access.
 
 The Miniflux route uses this TLS configuration:
 
 ```caddyfile
 rss.grattafiori.dev {
-    reverse_proxy 172.18.0.1:30081
+    reverse_proxy miniflux.miniflux.svc.cluster.local:8080
     tls {
         dns cloudflare {env.CLOUDFLARE_API_TOKEN}
         resolvers 9.9.9.9 149.112.112.112
@@ -53,11 +53,12 @@ Complete any login link that the command prints. If the server address changes, 
 
 ## Routing changes
 
-On potatoserver, make sure that the mounted Caddyfile is valid before reloading Caddy:
+Edit `caddy/Caddyfile` in the repository. On potatoserver, review and apply the generated K3s configuration:
 
 ```sh
-docker exec caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-docker exec caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+make k3s-diff
+make k3s-apply
+K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml rollout status deployment/caddy -n caddy --timeout=180s
 ```
 
 Keep `rss.grattafiori.dev` and `grafana.grattafiori.dev` out of `/etc/cloudflared/config.yml`.

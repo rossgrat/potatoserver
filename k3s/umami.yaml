@@ -176,6 +176,13 @@ spec:
             - ALL
         ports:
         - containerPort: 3000
+        startupProbe:
+          httpGet:
+            path: "/api/heartbeat"
+            port: 3000
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 36
         readinessProbe:
           httpGet:
             path: "/api/heartbeat"
@@ -207,13 +214,12 @@ metadata:
   name: umami
   namespace: umami
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: umami
   ports:
   - port: 3000
     targetPort: 3000
-    nodePort: 30082
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -260,8 +266,12 @@ spec:
   - Egress
   ingress:
   - from:
-    - ipBlock:
-        cidr: 172.18.0.0/16
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: caddy
+      podSelector:
+        matchLabels:
+          role: proxy
     ports:
     - protocol: TCP
       port: 3000

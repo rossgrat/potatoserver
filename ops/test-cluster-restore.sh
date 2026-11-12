@@ -2,70 +2,54 @@
 set -euo pipefail
 umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
-tools_dir=$(dirname "$script_dir")
-evidence=${1:?Pass an installation evidence directory}
+evidence=${1:?Pass a completed cluster backup directory}
+(cd "$evidence" && sha256sum --check --quiet cluster-backup.sha256)
 target="$evidence/recovery-test-$(date -u +%Y%m%dT%H%M%SZ)"
 mkdir "$target"
-mkdir "$target/root"
-tar -xzf "$evidence/cluster-backup.tar.gz" -C "$target/root" --no-same-owner --same-permissions
-K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
-  get secret potatoserver.node-password.k3s -n kube-system -o json > "$target/source-secret.json"
-network=$(docker network create --internal --label potatoserver.task=k3s-state-restore "k3s-state-restore-$$")
-container=
+export K3S_CONFIG_FILE=/dev/null
+K=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
+namespace=potato-cluster-recovery-$(date +%s)
 cleanup() {
-  if [[ -n "$container" ]]; then
-    docker logs "$container" > "$target/startup.log" 2>&1 || true
-    docker rm -fv "$container" >/dev/null
-  fi
-  docker network rm "$network" >/dev/null
-  if [[ -f "$target/result.txt" ]]; then
-    docker run --rm --network none --read-only -v "$target/root:/scratch" \
-      --entrypoint /bin/rm "$(cat "$tools_dir/k3s/recovery-image")" -rf /scratch/var /scratch/etc
-    rmdir "$target/root"
-  fi
+  "${K[@]}" logs -n "$namespace" recovery > "$target/startup.log" 2>&1 || true
+  "${K[@]}" delete namespace "$namespace" --ignore-not-found --wait=true --timeout=90s >/dev/null
 }
 trap cleanup EXIT
-container=$(docker run -d --label potatoserver.task=k3s-state-restore --network "$network" --memory 2g --cpus 2 \
-  -e K3S_CONFIG_FILE=/dev/null \
-  -v "$target/root/var/lib/rancher/k3s:/var/lib/rancher/k3s" \
-  --entrypoint /bin/sh "$(cat "$tools_dir/k3s/recovery-image")" \
-  -c 'address=$(hostname -i); exec /bin/k3s server --node-ip="$address" --advertise-address="$address" "$@"' sh \
-  --disable-agent --disable-scheduler \
-  --disable-cloud-controller --disable-network-policy --secrets-encryption \
-  --disable traefik,servicelb,coredns,local-storage,metrics-server,gateway-api-crd,runtimes \
-  --write-kubeconfig /tmp/recovery.yaml --write-kubeconfig-mode 0600)
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/cluster-recovery-resources.mjs" "$namespace" > "$target/resources.json"
+"${K[@]}" apply -f "$target/resources.json" > "$target/apply.txt"
+"${K[@]}" wait --for=jsonpath='{.status.phase}'=Running pod/recovery -n "$namespace" --timeout=120s
+"${K[@]}" exec -i -n "$namespace" recovery -- tar -xzf - -C / < "$evidence/cluster-backup.tar.gz"
+"${K[@]}" exec -n "$namespace" recovery -- touch /tmp/start
 ready=false
 for _ in {1..90}; do
-  [[ $(docker inspect --format '{{.State.Running}}' "$container") == true ]] || break
-  if docker exec "$container" /bin/kubectl --kubeconfig /tmp/recovery.yaml --request-timeout=5s get --raw /readyz > "$target/ready.txt" 2>/dev/null; then ready=true; break; fi
+  if "${K[@]}" exec -n "$namespace" recovery -- /bin/kubectl --kubeconfig /tmp/recovery.yaml --request-timeout=5s get --raw /readyz > "$target/ready.txt" 2> "$target/readiness-error.txt"; then ready=true; break; fi
+  [[ $("${K[@]}" get pod/recovery -n "$namespace" -o jsonpath='{.status.phase}') == Running ]] || break
   sleep 1
 done
 "$ready"
-docker exec "$container" /bin/kubectl --kubeconfig /tmp/recovery.yaml \
-  get secret potatoserver.node-password.k3s -n kube-system -o json > "$target/restored-secret.json"
-for namespace in miniflux umami pages-cms wubzduh job-board ntfy; do
-  if K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
-      get namespace "$namespace" -o name >/dev/null 2>&1; then
-    K3S_CONFIG_FILE=/dev/null /usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml \
-      get secrets -n "$namespace" -o json > "$target/source-$namespace-secrets.json"
-    docker exec "$container" /bin/kubectl --kubeconfig /tmp/recovery.yaml \
-      get secrets -n "$namespace" -o json > "$target/restored-$namespace-secrets.json"
-  fi
+"${K[@]}" version -o json > "$target/source-version.json"
+"${K[@]}" exec -n "$namespace" recovery -- /bin/kubectl --kubeconfig /tmp/recovery.yaml version -o json > "$target/restored-version.json"
+"${K[@]}" get secret potatoserver.node-password.k3s -n kube-system -o json > "$target/source-secret.json"
+"${K[@]}" exec -n "$namespace" recovery -- /bin/kubectl --kubeconfig /tmp/recovery.yaml get secret potatoserver.node-password.k3s -n kube-system -o json > "$target/restored-secret.json"
+for service in miniflux umami pages-cms wubzduh job-board ntfy caddy lgtm; do
+  "${K[@]}" get secrets -n "$service" -o json > "$target/source-$service-secrets.json"
+  "${K[@]}" exec -n "$namespace" recovery -- /bin/kubectl --kubeconfig /tmp/recovery.yaml get secrets -n "$service" -o json > "$target/restored-$service-secrets.json"
 done
-docker run --rm --network none --read-only -i -v "$target:/evidence:ro" \
-  --entrypoint node "$(docker inspect --format '{{.Image}}' pages-cms-app-1)" --input-type=module <<'JS'
-import fs from 'node:fs';
-const source=JSON.parse(fs.readFileSync('/evidence/source-secret.json'));
-const restored=JSON.parse(fs.readFileSync('/evidence/restored-secret.json'));
-if (!Object.keys(source.data).length) throw new Error('No source secret data');
-if (source.metadata.uid!==restored.metadata.uid) throw new Error('Restored identity differs');
-if (JSON.stringify(Object.entries(source.data).sort())!==JSON.stringify(Object.entries(restored.data).sort())) throw new Error('Restored secret differs');
-for (const file of fs.readdirSync('/evidence').filter(file => /^source-.+-secrets[.]json$/.test(file))) {
-  const identity = file => JSON.parse(fs.readFileSync(`/evidence/${file}`)).items.map(item => ({
-    name: item.metadata.name, uid: item.metadata.uid, data: Object.entries(item.data ?? {}).sort(),
-  })).sort((left, right) => left.name.localeCompare(right.name));
-  if (JSON.stringify(identity(file)) !== JSON.stringify(identity(file.replace('source-', 'restored-')))) throw new Error('Restored application credentials differ');
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 - "$target" <<'JS'
+const fs = require('fs');
+const target = process.argv[2];
+const read = file => JSON.parse(fs.readFileSync(target + '/' + file));
+if (read('source-version.json').serverVersion.gitVersion !== read('restored-version.json').serverVersion.gitVersion) throw Error('Recovery image version differs from the live cluster');
+const source = read('source-secret.json');
+const restored = read('restored-secret.json');
+const data = item => Object.entries(item.data ?? {}).sort();
+if (!Object.keys(source.data).length || source.metadata.uid !== restored.metadata.uid || JSON.stringify(data(source)) !== JSON.stringify(data(restored))) throw Error('Restored node credentials differ');
+let count = 0;
+for (const file of fs.readdirSync(target).filter(file => /^source-.+-secrets[.]json$/.test(file))) {
+  const identity = file => read(file).items.map(item => ({ name: item.metadata.name, uid: item.metadata.uid, data: data(item) })).sort((left, right) => left.name.localeCompare(right.name));
+  const expected = identity(file);
+  if (JSON.stringify(expected) !== JSON.stringify(identity(file.replace('source-', 'restored-')))) throw Error('Restored application credentials differ');
+  count += expected.length;
 }
-console.log('Saved cluster state and encrypted secret recovery PASS');
+console.log('K3s-native isolated API recovery and ' + count + ' restored application secrets PASS');
 JS
-printf 'Cluster API and encrypted secret restoration PASS\n' > "$target/result.txt"
+printf 'K3s-native cluster API and encrypted secret restoration PASS\n' > "$target/result.txt"

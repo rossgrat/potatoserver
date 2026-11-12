@@ -209,7 +209,7 @@ spec:
         - name: SERVER_PORT
           value: '8080'
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: 172.18.0.1:4317
+          value: lgtm.lgtm.svc.cluster.local:4317
         - name: OTEL_SERVICE_NAME
           value: job-board-api
       volumes:
@@ -222,14 +222,13 @@ metadata:
   name: job-board
   namespace: job-board
 spec:
-  type: NodePort
+  type: ClusterIP
   selector:
     app: job-board
     role: api
   ports:
   - port: 8080
     targetPort: 8080
-    nodePort: 30085
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
@@ -276,8 +275,12 @@ spec:
   - Egress
   ingress:
   - from:
-    - ipBlock:
-        cidr: 172.18.0.0/16
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: caddy
+      podSelector:
+        matchLabels:
+          role: proxy
     ports:
     - protocol: TCP
       port: 8080
@@ -394,7 +397,7 @@ spec:
         - name: SERVER_PORT
           value: '8080'
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: 172.18.0.1:4317
+          value: lgtm.lgtm.svc.cluster.local:4317
         - name: OTEL_SERVICE_NAME
           value: job-board-worker
       volumes:

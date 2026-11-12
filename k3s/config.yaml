@@ -9,5 +9,3 @@ secrets-encryption: true
 disable:
   - traefik
   - servicelb
-kube-proxy-arg:
-  - nodeport-addresses=127.0.0.0/8,100.108.26.48/32,172.18.0.1/32

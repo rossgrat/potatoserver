@@ -1,7 +1,7 @@
 # ntfy
 
 ntfy runs in the K3s namespace `ntfy` at `https://alerts.grattafiori.dev`.
-Caddy forwards requests to `172.18.0.1:30086`.
+Caddy forwards requests to `ntfy.ntfy.svc.cluster.local:8080`.
 The ntfy.sh relay provides iOS push delivery through APNs.
 
 On potatoserver, define this helper for the commands below:
@@ -91,9 +91,9 @@ Priority levels: 1 (min), 2 (low), 3 (default), 4 (high), 5 (urgent — bypasses
 
 Nightly backups use SQLite's online backup API for the active authentication database.
 The backups also contain the cache volume and K3s declarations.
-All backups stay on potatoserver. The original Docker volumes remain available for recovery.
+All backups stay on potatoserver. The retired Docker data is archived in server-local cleanup backups.
 Message history remains in memory because the deployment does not set a persistent message cache.
 Isolated publication, subscription, and pod replacement tests passed during migration.
-Delivery to a physical phone remains untested after the move.
+A test notification reached the existing phone subscription after the move.
 
-See [the migration runbook](k3s-migration.md) and [ntfy configuration](https://docs.ntfy.sh/config/).
+See [the operations guide](operations.md) and [ntfy configuration](https://docs.ntfy.sh/config/).

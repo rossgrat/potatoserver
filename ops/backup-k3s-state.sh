@@ -5,12 +5,7 @@ umask 077
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 target=/home/rossgrat/backups/k3s-state-$(date -u +%Y%m%dT%H%M%SZ)
 mkdir "$target"
-docker run --rm --network none --read-only --memory 256m --cpus 1 \
-  -v /var/lib/rancher/k3s/server/db:/source/db:ro \
-  -v /var/lib/rancher/k3s/server/token:/source/token:ro \
-  -v /etc/rancher/k3s:/configuration:ro \
-  -v "$target:/backup" -v "$script_dir/backup.mjs:/backup.mjs:ro" \
-  --entrypoint node "$(cat "$script_dir/backup-image")" /backup.mjs
+/usr/local/libexec/potatoserver-runtime/node-24.22.2 "$script_dir/backup-k3s-state.mjs" "$target"
 tar -czf "$target/cluster-backup.tar.gz" -C "$target/root" \
   var/lib/rancher/k3s/server/db var/lib/rancher/k3s/server/token etc/rancher/k3s
 gzip -t "$target/cluster-backup.tar.gz"

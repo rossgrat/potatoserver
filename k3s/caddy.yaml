@@ -1,0 +1,292 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: caddy
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: v1.37
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: potatoserver-caddy-data
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-retain
+  local:
+    path: "/var/lib/potatoserver/caddy-data"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - potatoserver
+  claimRef:
+    namespace: caddy
+    name: data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: caddy
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-retain
+  volumeName: potatoserver-caddy-data
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: potatoserver-caddy-config
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-retain
+  local:
+    path: "/var/lib/potatoserver/caddy-config"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - potatoserver
+  claimRef:
+    namespace: caddy
+    name: config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: config
+  namespace: caddy
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-retain
+  volumeName: potatoserver-caddy-config
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: potatoserver-caddy-logs
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-retain
+  local:
+    path: "/var/lib/potatoserver/caddy-logs"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - potatoserver
+  claimRef:
+    namespace: caddy
+    name: logs
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: logs
+  namespace: caddy
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-retain
+  volumeName: potatoserver-caddy-logs
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: potatoserver-caddy-media
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-retain
+  local:
+    path: "/var/lib/potatoserver/caddy-media"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - potatoserver
+  claimRef:
+    namespace: caddy
+    name: media
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: media
+  namespace: caddy
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-retain
+  volumeName: potatoserver-caddy-media
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: caddy
+  namespace: caddy
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: caddy
+  template:
+    metadata:
+      labels:
+        app: caddy
+        role: proxy
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+        sysctls:
+        - name: net.ipv4.ip_unprivileged_port_start
+          value: "80"
+      containers:
+      - name: caddy
+        image: docker.io/library/potatoserver-caddy:2.11.7-cloudflare0.2.4
+        imagePullPolicy: Never
+        args:
+        - run
+        - "--config"
+        - "/etc/caddy/Caddyfile"
+        - "--adapter"
+        - caddyfile
+        envFrom:
+        - secretRef:
+            name: cloudflare
+        ports:
+        - name: http
+          containerPort: 80
+          hostPort: 80
+        - name: https
+          containerPort: 443
+          hostPort: 443
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          periodSeconds: 2
+          failureThreshold: 30
+          exec:
+            command:
+            - wget
+            - "--quiet"
+            - "--tries=1"
+            - "--spider"
+            - http://127.0.0.1:2019/config/
+        readinessProbe:
+          periodSeconds: 5
+          exec:
+            command:
+            - wget
+            - "--quiet"
+            - "--tries=1"
+            - "--spider"
+            - http://127.0.0.1:2019/config/
+        livenessProbe:
+          periodSeconds: 10
+          exec:
+            command:
+            - wget
+            - "--quiet"
+            - "--tries=1"
+            - "--spider"
+            - http://127.0.0.1:2019/config/
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 500m
+            memory: 256Mi
+        volumeMounts:
+        - name: configuration
+          mountPath: "/etc/caddy/Caddyfile"
+          subPath: Caddyfile
+          readOnly: true
+        - name: data
+          mountPath: "/data"
+        - name: config
+          mountPath: "/config"
+        - name: logs
+          mountPath: "/var/log/caddy"
+        - name: media
+          mountPath: "/srv/media"
+          readOnly: true
+        - name: temporary
+          mountPath: "/tmp"
+        command:
+        - caddy
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+      - name: config
+        persistentVolumeClaim:
+          claimName: config
+      - name: logs
+        persistentVolumeClaim:
+          claimName: logs
+      - name: media
+        persistentVolumeClaim:
+          claimName: media
+      - name: configuration
+        configMap:
+          name: configuration
+      - name: temporary
+        emptyDir: {}

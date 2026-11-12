@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
+exec 9> /home/rossgrat/.local/state/potatoserver/operations.lock
+flock -n 9
 export K3S_CONFIG_FILE=/dev/null
 kubectl=(/usr/local/bin/k3s kubectl --kubeconfig /home/rossgrat/.kube/potatoserver-k3s.yaml)
 while IFS='=' read -r key runtime; do

@@ -1,4 +1,7 @@
-# K3s migration
+# K3s migration record
+
+Historical record from November 11, 2026. Commands below include retired paths and Docker resources.
+Use [operations](../operations.md) for current procedures.
 
 Migrate one application at a time after its recovery tests pass.
 Keep all backups on potatoserver. Do not copy private data to the Mac.

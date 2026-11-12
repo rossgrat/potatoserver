@@ -1,0 +1,192 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: lgtm
+  labels:
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/enforce-version: v1.37
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: potatoserver-lgtm-data
+spec:
+  capacity:
+    storage: 20Gi
+  accessModes:
+  - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-retain
+  local:
+    path: "/var/lib/potatoserver/lgtm"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - potatoserver
+  claimRef:
+    namespace: lgtm
+    name: data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: lgtm
+spec:
+  accessModes:
+  - ReadWriteOnce
+  storageClassName: local-retain
+  volumeName: potatoserver-lgtm-data
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lgtm
+  namespace: lgtm
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: lgtm
+  template:
+    metadata:
+      labels:
+        app: lgtm
+    spec:
+      automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsUser: 0
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: lgtm
+        image: grafana/otel-lgtm:0.38.1@sha256:0df9bc14142000b161344bd24caf6ddd319b7319055aedaf9b0692b125730af7
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+        startupProbe:
+          exec:
+            command:
+            - "/otel-lgtm/docker/healthcheck.sh"
+          periodSeconds: 5
+          timeoutSeconds: 5
+          failureThreshold: 60
+        readinessProbe:
+          exec:
+            command:
+            - "/otel-lgtm/docker/healthcheck.sh"
+          periodSeconds: 5
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - "/otel-lgtm/docker/healthcheck.sh"
+          periodSeconds: 20
+          timeoutSeconds: 5
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        volumeMounts:
+        - name: data
+          mountPath: "/data"
+        - name: dashboards
+          mountPath: "/provisioning/dashboards"
+          readOnly: true
+        - name: dashboards
+          mountPath: "/otel-lgtm/grafana/conf/provisioning/dashboards/job-board.yaml"
+          subPath: job-board.yaml
+          readOnly: true
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: data
+      - name: dashboards
+        configMap:
+          name: dashboards
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lgtm
+  namespace: lgtm
+spec:
+  type: ClusterIP
+  selector:
+    app: lgtm
+  ports:
+  - name: grafana
+    port: 3000
+    targetPort: 3000
+  - name: otlp-grpc
+    port: 4317
+    targetPort: 4317
+  - name: otlp-http
+    port: 4318
+    targetPort: 4318
+  - name: loki
+    port: 3100
+    targetPort: 3100
+  - name: metrics
+    port: 9090
+    targetPort: 9090
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: lgtm
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+  - Egress
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: receivers
+  namespace: lgtm
+spec:
+  podSelector:
+    matchLabels:
+      app: lgtm
+  policyTypes:
+  - Ingress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: job-board
+      podSelector:
+        matchLabels:
+          app: job-board
+    ports:
+    - protocol: TCP
+      port: 4317
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: caddy
+      podSelector:
+        matchLabels:
+          role: proxy
+    ports:
+    - protocol: TCP
+      port: 3000

@@ -1,11 +1,10 @@
 [Unit]
 Description=Potatoserver K3s state backup
-Requires=docker.service
-After=docker.service
+After=k3s.service
 
 [Service]
 Type=oneshot
 UMask=0077
 Nice=10
 TimeoutStartSec=2min
-ExecStart=/bin/bash /usr/local/libexec/potatoserver-k3s/backup.sh
+ExecStart=/bin/bash /usr/local/libexec/potatoserver-k3s/backup-k3s-state.sh

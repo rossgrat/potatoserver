@@ -5,7 +5,7 @@ The dashboard requires a login. The public `/api/send` endpoint accepts page vie
 The deployment pins Umami 3.4.1 and PostgreSQL 18.6.
 PostgreSQL does not publish a host port.
 The application and PostgreSQL run in the K3s namespace `umami`.
-Caddy forwards requests to `172.18.0.1:30082`.
+Caddy forwards requests to `umami.umami.svc.cluster.local:3000`.
 
 ## Data collection
 
@@ -24,34 +24,12 @@ Make sure that the message says tracking is disabled.
 Repeat this on each browser and device that you use.
 Opening the URL again enables tracking in that browser.
 
-## Original Docker bootstrap
+## Recovery
 
-The following steps describe the original setup. Do not run them against the active K3s deployment.
-Restore the current credentials and database from the server-local backups for recovery.
-
-On potatoserver, create `umami/.env` from `.env.example` in the deployment checkout.
-Generate each value with `openssl rand -hex 32`.
-Set the file permissions to `600`.
-From the checkout, start the application:
-
-```sh
-docker compose -p umami -f umami/docker-compose.yml up -d --wait
-```
-
-Before routing public requests, replace the default administrator password and create the blog site:
-
-```sh
-umask 077
-mkdir -p "$HOME/.config/umami"
-set -o noclobber
-docker compose -p umami -f umami/docker-compose.yml exec -T umami node --input-type=module < umami/bootstrap.mjs > "$HOME/.config/umami/admin.json"
-```
-
-Run the bootstrap script only on a new database.
-It saves the generated password on the server without printing it.
+Restore the database, application Secret, and saved account credentials from the backups on potatoserver.
+Use [operations](operations.md) for the recovery tests.
 The blog website ID is `8bbb85d9-34c5-4d84-b595-ecce3cba7846`.
 Keep this ID consistent with the blog loader.
-The script explicitly disables recording and heatmaps for that website.
 
 ## Operations
 
@@ -66,7 +44,7 @@ bash umami/backup.sh /home/rossgrat/backups/umami/manual
 Backups contain the PostgreSQL database and application secrets.
 Keep them private on potatoserver. Do not copy them to the Mac or another server.
 The claim `umami/data-postgres-0` holds the live database in K3s.
-The stopped Docker database and `umami_postgres_data` volume remain available for recovery.
+The retired Docker data is archived in server-local cleanup backups.
 Each manual backup requires a new directory. It saves the active database, deployment secrets, and saved HTTP credentials.
 The memory limits are 512 MiB for Umami and 256 MiB for PostgreSQL.
 

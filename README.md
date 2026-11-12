@@ -25,14 +25,14 @@ Private (Grafana): Tailscale device → tailnet → host:443 → Caddy (TLS) →
 ```
 
 Miniflux and Grafana use the host's Tailscale IP.
-Miniflux, Umami, CMS, Wubzduh, Job Board, and ntfy run on K3s.
-Caddy routes to their declared NodePorts through `172.18.0.1`.
-Caddy, LGTM, Tailscale, and Cloudflare Tunnel remain outside K3s.
+Miniflux, Umami, CMS, Wubzduh, Job Board, ntfy, Caddy, and LGTM run on K3s.
+Caddy exposes host ports 80 and 443 and routes requests through Kubernetes service DNS.
+Tailscale and Cloudflare Tunnel run as host services. Docker is disabled.
 Umami remains public so website visitors can send page views to its `/api/send` endpoint.
 
 ## Setup
 
-The K3s setup and recovery procedures are in [the migration runbook](docs/k3s-migration.md).
+The K3s setup and recovery procedures are in [the operations guide](docs/operations.md).
 Restore private credentials from the backups on potatoserver before starting a replacement host.
 Run `make up` from `/home/rossgrat/repos/network` on the configured server.
 The repository alone does not contain database contents, credentials, or the imported CMS image.
@@ -53,21 +53,18 @@ make deploy    # Pull configuration and apply it on the server
 ## Configuration Files
 
 - `caddy/Caddyfile`: Routing configuration. Public tunnel routes use `http://`. Private routes use Caddy HTTPS.
-- `caddy/docker-compose.yml` — Caddy container
+- `kustomization.yaml`: Complete K3s deployment and generated configuration maps
 - `deployments.conf`: The runtime selected for each service
 - `k3s/*.yaml`: Application versions, storage, probes, and network rules
 - `ops/apply-k3s.sh`: Apply active services from the declared configuration
-- `miniflux/docker-compose.yml`: Retained Docker recovery configuration
-- `ntfy/docker-compose.yml`: Retained Docker recovery configuration
-- `ntfy/server.yml` — ntfy server config
-- `umami/docker-compose.yml`: Retained Docker recovery configuration
+- `k3s/ntfy.yaml`: ntfy server configuration and retained storage
 - `/etc/cloudflared/config.yml` — Tunnel config (on server)
 
 ## Docs
 
-- [K3s migration](docs/k3s-migration.md): Recovery procedures, verification gates, and server-local backups
+- [Operations](docs/operations.md): Deployment, recovery, health checks, and server-local backups
+- [Migration record](docs/archive/k3s-migration-20261111.md): Completed migration checkpoints and known follow-up work
 - [Pages CMS](docs/pages-cms.md): Blog editing, deployment, and backups
-- [Deployment overrides](docs/deployment-overrides.md): Existing application versions and database mounts
 
 - [Cloudflare Tunnel](docs/cloudflare-tunnel.md) — Tunnel setup, DNS records, management commands
 - [Tailscale](docs/tailscale.md): Private access to Miniflux and Grafana
